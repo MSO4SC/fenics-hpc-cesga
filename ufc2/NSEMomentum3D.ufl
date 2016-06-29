@@ -1,0 +1,9 @@
+with open("NSEbase.ufl") as f:
+  exec(f.read())
+
+# Newton's method Ju_i+1 = Ju_i - F(u_i)
+J = derivative(r_m, u, u_)
+F = r_m
+
+a = J
+L = action(J, u) - F

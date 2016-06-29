@@ -1,0 +1,106 @@
+V = VectorElement("CG", "tetrahedron", 1)
+Q = FiniteElement("CG", "tetrahedron", 1)
+Z = FiniteElement("DG", "tetrahedron", 0)
+ZV = VectorElement("DG", "tetrahedron", 0)
+
+v = TestFunction(V)
+v2 = Coefficient(V)
+u = Coefficient(V)
+up = Coefficient(V)
+q = TestFunction(Q)
+q2 = Coefficient(Q)
+p = Coefficient(Q)
+pp = Coefficient(Q)
+nu = Coefficient(Q)
+h = Coefficient(Z)
+k = Coefficient(Z)
+c1 = Coefficient(Z)
+c2 = Coefficient(Z)
+c3 = Coefficient(Z)
+u0 = Coefficient(V)
+p0 = Coefficient(Q)
+dtu = Coefficient(V)
+n = Coefficient(V)
+sm = Coefficient(Z)
+hmin = Coefficient(Z)
+umean = Coefficient(ZV)
+psi_m = Coefficient(V)
+psi_c = Coefficient(Q)
+bpsi_m = Coefficient(V)
+phi_m = Coefficient(V)
+phi_c = Coefficient(Q)
+z = TestFunction(Z)
+zv = TestFunction(ZV)
+zz = Coefficient(Z)
+ei = Coefficient(Z)
+cv = Coefficient(Z)
+Rm = Coefficient(Z)
+Rc = Coefficient(Z)
+wm = Coefficient(Z)
+wc = Coefficient(Z)
+
+u_ = TrialFunction(V)
+p_ = TrialFunction(Q)
+
+icv = 1./cv
+
+um = 0.5*(u + u0)
+
+eps = 0.01
+C_av = 0.1*(eps + (abs(u[0]) + abs(u[1]) + abs(u[2])))
+
+kk = 0.25 * hmin
+d = c1 * h**(2./2.)
+d32 = C_av * c2 * h**(3./2.)
+#d32 = 0.1 * c1 * h**(3./2.)
+
+R = [grad(p) + grad(um)*um, div(um)]
+R_v = [grad(v)*um, div(v)]
+R_q = [grad(q), 0]
+
+LS_u = d*(sum([ inner(R[ii], R_v[ii]) for ii in range(0, 2) ]))
+LS_p = d*(sum([ inner(R[ii], R_q[ii]) for ii in range(0, 2) ]))
+
+Rd = [grad(p) + grad(um)*up, div(um)]
+Rd_v = [grad(v)*up, div(v)]
+Rd_q = [grad(q), 0]
+
+LSd_u = d*(sum([ inner(Rd[ii], Rd_v[ii]) for ii in range(0, 2) ]))
+LSd_p = d*(sum([ inner(Rd[ii], Rd_q[ii]) for ii in range(0, 2) ]))
+
+
+rs_m = (nu*inner(grad(u), grad(v)) + inner(grad(p) + grad(u)*u, v))*dx
+rs_c = (inner(div(u), q))*dx
+
+rmp_m = replace(rs_m, { u: um })
+rmp_c = replace(rs_c, { u: um })
+
+r_m = (inner(u - u0, v)/k)*dx + rmp_m + sm*(1./h)*inner(um, n)*inner(v, n)*ds + LS_u*dx
+r_c = (2*k*inner(grad(p - p0), grad(q)))*dx + rmp_c + hmin*h*p*q*dx + LS_p*dx
+
+rsp_m = replace(rs_m, { u: up, p: pp })
+rsp_c = replace(rs_c, { u: up, p: pp }) + hmin*h*pp*q*dx
+
+rds_m = adjoint(derivative(rsp_m, up, u_), (v, u_))
+rds_m = action(rds_m, u)
+rds_c = adjoint(derivative(rsp_c, pp, p_), (q, p_))
+rds_c = action(rds_c, p)
+
+# Adjoint cross-component terms
+rdsx_m = derivative(action(rds_c, p), up, v)
+rdsx_c = derivative(action(rds_m, u), pp, q)
+
+Ld_m = inner(psi_m, v)*dx + inner(bpsi_m, v)*ds
+Ld_c = inner(psi_c, q)*dx
+
+rlds_m = rds_m + rdsx_m - Ld_m
+rlds_c = rds_c + rdsx_c - Ld_c
+
+#rd_m = rlds_m
+#rd_c = rlds_c
+
+rldmp_m = replace(rlds_m, { u: um })
+rldmp_c = replace(rlds_c, { u: um })
+
+rd_m = (inner(u - u0, v)/k)*dx + rldmp_m + LS_u*dx + d32*inner(grad(um), grad(v))*dx
+rd_c = (2*k*inner(grad(p - p0), grad(q)))*dx + rldmp_c + LS_p*dx + d32*inner(grad(p), grad(q))*dx

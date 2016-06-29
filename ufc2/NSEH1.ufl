@@ -1,0 +1,7 @@
+with open("NSEbase.ufl") as f:
+  exec(f.read())
+
+#M = h*inner(u, u)*dx + h*inner(grad(u), grad(u))*dx + \
+#  h*inner(p, p)*dx + h*inner(grad(p), grad(p))*dx
+M = h*inner(grad(u), grad(u))*dx + \
+  h*inner(grad(p), grad(p))*dx
