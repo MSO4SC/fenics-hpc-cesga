@@ -36,6 +36,10 @@
 #include "ufc2/NSEContinuity3D.h"
 #endif
 
+#include "dolfin/NodeNormal.h"
+#include "dolfin/SpaceTimeFunction.h"
+#include "dolfin/SlipBC.h"
+
 #include <ostream>
 #include <iomanip>
 #include <cstring>
@@ -167,7 +171,7 @@ void ComputeLargestIndicators_cell(Mesh& mesh, Vector& e_indx, std::vector<int>&
 			 (dolfin::MPI::numProcesses() > 1 ? 
 			  mesh.distdata().global_numCells() : mesh.numCells()) * percentage * 0.01));
   
-  if(dolfin::MPI::processNumber() == 1)
+  if(dolfin::MPI::processNumber() == 0)
     dolfin_set("output destination","terminal");
   message("Computing largest indicators");
   message("percentage: %f", percentage);
@@ -361,7 +365,7 @@ void ComputeRefinementMarkers(Mesh& mesh, real percentage, Vector& e_indx,
 }
 //-----------------------------------------------------------------------------
 
-
+// Utility function for mesh rotation
 void computeX(Function& XX, Form* aM, Mesh& mesh)
 {
   // Copy mesh coordinates into X array/function                                                                                                                                                            
@@ -400,7 +404,7 @@ void computeX(Function& XX, Form* aM, Mesh& mesh)
   delete[] id;
 }
 
-
+// Utility function for mesh rotation
 void Rotate(Function& XX, Form* aM, Mesh& mesh, double theta)
 {
 
@@ -483,14 +487,13 @@ int main(int argc, char* argv[])
 
   real theta = 0.;
 
-  // Parse simulation case
+  // Parse command-line arguments
   if(argc >= 2)
   {
     simcase = std::string(argv[1]);
 
   }
 
-  // Parse angle of attack theta
   if(argc >= 3)
   {
     theta = atof(argv[2]);
@@ -533,12 +536,12 @@ int main(int argc, char* argv[])
     dolfin_set("output destination","terminal");
 
 
-  // Function for no-slip boundary condition for velocity
-  class Noslip : public Function
+  // Inflow velocity
+  class Inflow : public Function
   {
   public:
 
-    Noslip(Mesh& mesh) : Function(mesh) {}
+    Inflow(Mesh& mesh) : Function(mesh) {}
 
     void eval(real* values, const real* x) const
     {
@@ -551,12 +554,12 @@ int main(int argc, char* argv[])
     }
   };
 
-  // Function for no-slip boundary condition for velocity
-  class DualNoslip : public Function
+  // Inflow velocity for the dual problem
+  class DualInflow : public Function
   {
   public:
 
-    DualNoslip(Mesh& mesh) : Function(mesh) {}
+    DualInflow(Mesh& mesh) : Function(mesh) {}
 
     void eval(real* values, const real* x) const
     {
@@ -586,7 +589,7 @@ int main(int argc, char* argv[])
     }
   };
 
-  // Function for no-slip boundary condition for velocity
+  // Outflow pressure
   class Outflow : public Function
   {
   public:
@@ -627,7 +630,7 @@ int main(int argc, char* argv[])
     }
   };
 
-  // Function for no-slip boundary condition for velocity
+  // Marker function for weak boundary condition
   class SlipMarker : public Function
   {
   public:
@@ -661,7 +664,7 @@ int main(int argc, char* argv[])
     }
   };
 
-  // Function for no-slip boundary condition for velocity
+  // Dual volume source for momentum
   class PsiMomentum : public Function
   {
   public:
@@ -673,9 +676,6 @@ int main(int argc, char* argv[])
       values[0] = 0.0;
       values[1] = 0.0;
       values[2] = 0.0;
-
-//       if(x[0] >= 0.4 && x[0] <= 0.7 && x[1] >= 0.6 && x[1] <= 0.9)
-//  	values[0] = 1.0;
     }
 
     uint rank() const
@@ -689,7 +689,7 @@ int main(int argc, char* argv[])
     }
   };
 
-  // Function for no-slip boundary condition for velocity
+  // Dual volume source for continuity
   class PsiContinuity : public Function
   {
   public:
@@ -712,7 +712,7 @@ int main(int argc, char* argv[])
     }
   };
 
-  // Function for no-slip boundary condition for velocity
+  // Dual boundary source for momentum
   class BPsiMomentum : public Function
   {
   public:
@@ -743,7 +743,7 @@ int main(int argc, char* argv[])
     }
   };
 
-  // Function for no-slip boundary condition for velocity
+  // Marker and orientation function for drag computation
   class ThetaDrag : public Function
   {
   public:
@@ -787,7 +787,7 @@ int main(int argc, char* argv[])
     }
   };
 
-  // Function for no-slip boundary condition for velocity
+  // Marker and orientation function for lift computation
   class ThetaLift : public Function
   {
   public:
@@ -858,9 +858,9 @@ int main(int argc, char* argv[])
   NodeNormal nn(mesh);
   CellVolume cv(mesh);
 
-  // Create boundary condition
-  Noslip noslip(mesh);
-  DualNoslip dnoslip(mesh);
+  // Create boundary conditions
+  Inflow inflow(mesh);
+  DualInflow dinflow(mesh);
   Outflow outflow(mesh);
   ThetaDrag thetadrag(mesh);
   ThetaLift thetalift(mesh);
@@ -870,12 +870,10 @@ int main(int argc, char* argv[])
   InflowBoundary iboundary;
   SlipBoundary sboundary;
   AllBoundary aboundary;
-  DirichletBC bc_m(noslip, mesh, dboundary);
-  DirichletBC bc_in_m(noslip, mesh, iboundary);
+  DirichletBC bc_in_m(inflow, mesh, iboundary);
   DirichletBC bc_c(outflow, mesh, oboundary);
   SlipBC slipbc_m(mesh, sboundary, nn);
-  DirichletBC bc_dm(dnoslip, mesh, aboundary);
-  //SlipBC bc_dm(mesh, aboundary, nn);
+  DirichletBC bc_dm(dinflow, mesh, aboundary);
 
   Array<BoundaryCondition*> bcs_m;
   bcs_m.push_back(&bc_in_m);
@@ -907,6 +905,7 @@ int main(int argc, char* argv[])
   cout << "c1: " << c1 << endl;
   cout << "c2: " << c2 << endl;
 
+  // Declare all needed functions
   Function u;
   Function u0;
   Function p;
@@ -1070,7 +1069,6 @@ int main(int argc, char* argv[])
 
 
   int no_samples = 200;
-  //int no_samples = 10;
 
   SpaceTimeFunction* Up = 0;
   SpaceTimeFunction* dtUp = 0;
@@ -1211,8 +1209,6 @@ int main(int argc, char* argv[])
       // Fixed-point iteration
       for(int i = 0; i < maxit; i++)
       {
-	//ComputeMean(mesh, umean, u, ap_m, indices, c_indices);
-
 	cout << "Solving momentum" << endl;
 	real timer = time();
 	pde_m->solve(U);
@@ -1264,19 +1260,13 @@ int main(int argc, char* argv[])
 	real H1dualgstc = assembler.assemble(Mgwc);
 	tot_H1dualgstc += k*H1dualgstc;
 	wctot.vector().axpy(k, wc.vector());
-	//cout << "step H1 dualm: " << H1dualm << endl;
-	//cout << "step H1 dualc: " << H1dualc << endl;
 
 	real Rmi = assembler.assemble(MRm);
 	tot_Rm += k*Rmi;
-	//real Rgmi = sqrt(assembler.assemble(MRgm));
-	//tot_Rgm += k*Rgmi;
 	real Rgmi = 0.0;
 	Rmtot.vector().axpy(k, Rm.vector());
 	real Rci = assembler.assemble(MRc);
 	tot_Rc += k*Rci;
-	//real Rgci = sqrt(assembler.assemble(MRgc));
-	//tot_Rgc += k*Rgci;
 	real Rgci = 0.0;
 	Rctot.vector().axpy(k, Rc.vector());
 
@@ -1319,15 +1309,14 @@ int main(int argc, char* argv[])
 
 	if(t >= dual_T)
 	{
+	  // Output drag and lift, together with other diagnostics
+
 	  tot_drag = (drag + n_mean*tot_drag) / (n_mean + 1);
-	  //cout << "step mean drag: " << tot_drag << endl;
 	  cout << "step t: " << t << " drag: " << drag << " lift: " << lift << endl;
 	  real H1primal = assembler.assemble(MH1);
 	  tot_H1primal = (H1primal + n_mean*tot_H1primal) / (n_mean + 1);
-	  //tot_H1primal += k*H1primal;
 	  real H1primal2 = assembler.assemble(MH12);
 	  tot_H1primal2 = (H1primal2 + n_mean*tot_H1primal2) / (n_mean + 1);
-	  //tot_H1primal2 += k*H1primal2;
 	  cout << "step H1 primal: " << tot_H1primal << endl;
 	  cout << "step H1 primal2: " << tot_H1primal2 << endl;
 	  n_mean++;
@@ -1449,13 +1438,6 @@ int main(int argc, char* argv[])
       cout << "total Rc: " << tot_Rc << endl;
       cout << "total Rgm: " << tot_Rgm << endl;
       cout << "total Rgc: " << tot_Rgc << endl;
-//       cout << "error estimate: " << errest / dual_T << endl;
-//       cout << "error estimate cs: " << sqrt(int_errest_cs) / dual_T << endl;
-//       cout << "total H1dualm: " << sqrt(tot_H1dualm) << endl;
-//       cout << "total H1dualc: " << sqrt(tot_H1dualc) << endl;
-//       cout << "total Rm: " << sqrt(tot_Rm) << endl;
-//       cout << "total Rc: " << sqrt(tot_Rc) << endl;
-
 
       File file_ei("ei.bin");
       file_ei << eif;
@@ -1486,7 +1468,25 @@ int main(int argc, char* argv[])
       
 
       ComputeRefinementMarkers(mesh, adapt_percent, ei, cell_marker);
-      AdaptiveRefinement::refine(mesh, cell_marker);
+
+      if(MPI::processNumber() == 0)
+	dolfin_set("output destination","terminal");
+      message("Adaptive refinement");
+      message("cells before: %d",
+	      (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
+      message("vertices before: %d",
+	      (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
+      dolfin_set("output destination","silent");
+
+      RivaraRefinement::refine(mesh, cell_marker);
+
+      if(MPI::processNumber() == 0)
+	dolfin_set("output destination","terminal");
+      message("cells after: %d",
+	      (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
+      message("vertices after: %d",
+	      (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
+      dolfin_set("output destination","silent");
       
       File file_rm("rmesh.bin");
       file_rm << mesh;
