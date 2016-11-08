@@ -1,0 +1,61 @@
+#!/bin/bash -l
+# The -l above is required to get the full environment with modules
+
+# The name of the script is myjob
+#SBATCH -J fenics-hpc
+
+# Only 1 hour wall-clock time will be given to this job
+#SBATCH -t 12:00:00
+
+# Number of nodes
+#SBATCH -N 8
+# Number of MPI processes per node (the following is actually the default)
+#SBATCH --ntasks-per-node=32
+# Number of MPI processes.
+#SBATCH -n 256
+
+#SBATCH -e error_file.e
+#SBATCH -o output_file.o
+
+##SBATCH -A 2015-10-18
+##SBATCH -A edu16.DD2365
+#SBATCH -A edu16.bcam
+
+export ATP_ENABLED=1
+
+set -e
+
+# mesh0.bin is the starting mesh
+cp mesh0.bin mesh.bin
+
+M=128
+MMAX=256
+
+theta=10
+
+for i in $( seq -w 00 40 )
+do
+    # Run one adaptive iteration
+    mkdir -p iter_${i}
+    ( aprun -n $M -N 32 -ss -j1 ./demo wing $theta > log1 2> log2 < /dev/null )
+
+    # Postprocess the solution into ParaView files
+    aprun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 200 -s velocity -f 10  1> log.pp1 2> log.ppe1 &
+    aprun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 1000 -s dvelocity -f 10  1> log.pp2 2> log.ppe2 &
+    aprun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 1000 -s pressure -f 10 1> log.pp3 2> log.ppe3 &
+    aprun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 1000 -s dpressure -f 10 1> log.pp4 2> log.ppe4 &
+    wait
+
+    # Prepare for the next adaptive iteration
+    mv *.bin log1 log2 *.vtu *.pvd iter_${i}
+    cp iter_${i}/rmesh.bin iter_${i}/mesh0.bin iter_${i}/log1 .
+    cp rmesh.bin mesh.bin
+    
+    # Compute new core count
+    M=$(( $( tail -n 10 log1|grep "vertices after"|cut -d " " -f 3 ) / 250 ))
+    M=$(( $M < 32 ? 32 : $M ))
+    M=$(( $M > $MMAX ? $MMAX : $M ))
+
+    # Don't rotate the mesh in subsequent adaptive iterations
+    theta=0
+done
