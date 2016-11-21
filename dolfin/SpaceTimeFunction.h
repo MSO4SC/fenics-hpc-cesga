@@ -49,11 +49,6 @@ namespace dolfin
     // Add a set of functions with arbitrary time steps
     void util_addFiles(std::vector<std::string> filenames);
     
-    // Add a set of functions with fixed time step
-    void util_addFiles(std::vector<std::string> filenames, real T);
-    void util_fileList(std::string basename, int N,
-		       std::vector<std::string>& filenames);
-    
     /// Return mesh associated with function
     Mesh& mesh();
     
