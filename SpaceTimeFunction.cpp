@@ -52,9 +52,31 @@ SpaceTimeFunction::~SpaceTimeFunction()
 
 }
 //-----------------------------------------------------------------------------
+void SpaceTimeFunction::setBasename(const std::string _basename)
+{
+  basename = _basename;
+#ifndef ENABLE_MPIIO
+  std::stringstream numberedBasename;
+  numberedBasename << basename << "_" << MPI::processNumber();
+  basename = numberedBasename.str();
+#endif
+}
+//-----------------------------------------------------------------------------
+std::string SpaceTimeFunction::getNewFilename(const real t, const std::string extension)
+{
+  std::size_t newIndex = U_files.size();
+  std::stringstream number;
+  number << std::setfill('0') << std::setw(6) << newIndex;
+  std::stringstream ufilename;
+  ufilename << basename << number.str() << extension << std::ends;
+
+  addPoint(ufilename.str(),t);
+
+  return ufilename.str();
+}
+//-----------------------------------------------------------------------------
 void SpaceTimeFunction::eval(real t)
 {
-  
   std::map<real, std::string>::iterator it1;
   std::map<real, std::string>::iterator it0;
   
@@ -166,7 +188,6 @@ void SpaceTimeFunction::util_addFiles(std::vector<std::string> filenames)
 #else
   error("MPI I/O required for space time functions with arbitrary time step");
 #endif
-  
 }
 
 //-----------------------------------------------------------------------------

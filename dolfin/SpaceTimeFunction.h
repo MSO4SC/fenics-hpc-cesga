@@ -30,7 +30,16 @@ namespace dolfin
     
     /// Destructor
     ~SpaceTimeFunction();
+
+    /// Get basename
+    std::string getBasename() const {return basename;}
     
+    /// Set basename
+    void setBasename(const std::string _basename);
+    
+    /// Add a new file to the list and return its name
+    std::string getNewFilename(const real t, const std::string extension=".bin");
+
     /// Evaluate function at time t, giving result in Ut
     void eval(real t);
     
@@ -70,6 +79,8 @@ namespace dolfin
     bool u1_t_valid;
     
     std::map<real, std::string> U_files;
+
+    std::string basename;
     
 #ifdef ENABLE_MPIIO
     
