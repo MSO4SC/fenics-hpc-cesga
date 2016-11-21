@@ -1077,29 +1077,19 @@ int main(int argc, char* argv[])
   SpaceTimeFunction* Rcp = 0;
 
   Up = new SpaceTimeFunction(mesh, up);
-  std::vector<std::string> uprimal_fnames;
-  Up->util_fileList("velocity_v", no_samples, uprimal_fnames);
-  Up->util_addFiles(uprimal_fnames, T);
+  Up->setBasename("velocity_v");
 
   dtUp = new SpaceTimeFunction(mesh, dtup);
-  std::vector<std::string> dtuprimal_fnames;
-  dtUp->util_fileList("dtvelocity_v", no_samples, dtuprimal_fnames);
-  dtUp->util_addFiles(dtuprimal_fnames, T);
+  dtUp->setBasename("dtvelocity_v");
 
   Pp = new SpaceTimeFunction(mesh, pp);
-  std::vector<std::string> pprimal_fnames;
-  Pp->util_fileList("pressure_v", no_samples, pprimal_fnames);
-  Pp->util_addFiles(pprimal_fnames, T);
+  Pp->setBasename("pressure_v");
 
   Rmp = new SpaceTimeFunction(mesh, Rm);
-  std::vector<std::string> Rmprimal_fnames;
-  Rmp->util_fileList("Rm_v", no_samples, Rmprimal_fnames);
-  Rmp->util_addFiles(Rmprimal_fnames, T);
+  Rmp->setBasename("Rm_v");
 
   Rcp = new SpaceTimeFunction(mesh, Rc);
-  std::vector<std::string> Rcprimal_fnames;
-  Rcp->util_fileList("Rc_v", no_samples, Rcprimal_fnames);
-  Rcp->util_addFiles(Rcprimal_fnames, T);
+  Rcp->setBasename("Rc_v");
 
   std::string solver = "primal";
 
@@ -1334,40 +1324,25 @@ int main(int argc, char* argv[])
 	{
 	  file_u << u; file_p << p;
 	  
-	  // Record primal solution
-	  std::stringstream number;
-	  number << std::setfill('0') << std::setw(6) << sample;
-	  
-	  // Save primal velocity
-	  up.vector() = u.vector(); up.vector() += u0.vector(); up.vector() /= 2.;
-	  std::stringstream ufilename;
-	  ufilename << "velocity_v" << number.str() << ".bin" << std::ends;
-	  File ubinfile(ufilename.str());
-	  ubinfile << up.vector();
+          up.vector() = u.vector(); up.vector() += u0.vector(); up.vector() /= 2.;
+          File ubinfile(Up->getNewFilename(t));
+          ubinfile << up.vector();
 
-	  // Save primal velocity time-derivative
-	  dtu.vector() = u.vector(); dtu.vector() -= u0.vector(); dtu.vector() /= k;
-	  std::stringstream dtufilename;
-	  dtufilename << "dtvelocity_v" << number.str() << ".bin" << std::ends;
-	  File dtubinfile(dtufilename.str());
-	  dtubinfile << dtu.vector();
-	  
-	  // Save primal pressure
-	  std::stringstream pfilename;
-	  pfilename << "pressure_v" << number.str() << ".bin" << std::ends;
-	  File pbinfile(pfilename.str());
-	  pbinfile << p.vector();
+          // Save primal velocity time-derivative
+          dtu.vector() = u.vector(); dtu.vector() -= u0.vector(); dtu.vector() /= k;
+          File dtubinfile(dtUp->getNewFilename(t));
+          dtubinfile << dtu.vector();
 
-	  // Save primal residuals
-	  std::stringstream Rmfilename;
-	  Rmfilename << "Rm_v" << number.str() << ".bin" << std::ends;
-	  File Rmbinfile(Rmfilename.str());
-	  Rmbinfile << Rm.vector();
+          // Save primal pressure
+          File pbinfile(Pp->getNewFilename(t));
+          pbinfile << p.vector();
 
-	  std::stringstream Rcfilename;
-	  Rcfilename << "Rc_v" << number.str() << ".bin" << std::ends;
-	  File Rcbinfile(Rcfilename.str());
-	  Rcbinfile << Rc.vector();
+          // Save primal residuals
+          File Rmbinfile(Rmp->getNewFilename(t));
+          Rmbinfile << Rm.vector();
+
+          File Rcbinfile(Rcp->getNewFilename(t));
+          Rcbinfile << Rc.vector();
 	}
 	else
 	{

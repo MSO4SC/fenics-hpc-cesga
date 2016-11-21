@@ -1284,10 +1284,6 @@ int main(int argc, char* argv[])
         {
           file_u << u; file_p << p;
 
-          // Record primal solution
-          std::stringstream number;
-          number << std::setfill('0') << std::setw(6) << sample;
-
           // Save primal velocity
           up.vector() = u.vector(); up.vector() += u0.vector(); up.vector() /= 2.;
           File ubinfile(Up->getNewFilename(t));
