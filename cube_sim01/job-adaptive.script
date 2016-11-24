@@ -50,7 +50,7 @@ do
     cp rmesh.bin mesh.bin
     
     # Compute new core count
-    M=$(( $( tail -n 10 log1|grep "vertices after"|cut -d " " -f 3 ) / 250 ))
+    M=$(( $( grep "vertices after" log1|cut -d " " -f 3 ) / 250 ))
     M=$(( $M < 32 ? 32 : $M ))
     M=$(( $M > $MMAX ? $MMAX : $M ))
 done
