@@ -12,33 +12,33 @@
 #include <dolfin/config/dolfin_config.h>
 #include <dolfin/fem/UFC.h>
 #ifdef ENABLE_UFL 
-#include "ufc2/NSEMomentum3D.h"
-#include "ufc2/NSEContinuity3D.h"
-#include "ufc2/NSEDualMomentum3D.h"
-#include "ufc2/NSEDualContinuity3D.h"
-#include "ufc2/NSEErrRepMomentum3D.h"
-#include "ufc2/NSEErrRepContinuity3D.h"
-#include "ufc2/Drag3D.h"
-#include "ufc2/NSEH1.h"
-#include "ufc2/NSEH12.h"
-#include "ufc2/NSEH1Momentum3D.h"
-#include "ufc2/NSEH1Continuity3D.h"
-#include "ufc2/NSEH1MomentumGlobal3D.h"
-#include "ufc2/NSEH1ContinuityGlobal3D.h"
-#include "ufc2/NSEMomentumResidual3D.h"
-#include "ufc2/NSEContinuityResidual3D.h"
-#include "ufc2/NSEMomentumResidualGlobal3D.h"
-#include "ufc2/NSEContinuityResidualGlobal3D.h"
-#include "ufc2/NSEErrEst.h"
-#include "ufc2/NSEErrEstGlobal.h"
+#include "../ufc2/NSEMomentum3D.h"
+#include "../ufc2/NSEContinuity3D.h"
+#include "../ufc2/NSEDualMomentum3D.h"
+#include "../ufc2/NSEDualContinuity3D.h"
+#include "../ufc2/NSEErrRepMomentum3D.h"
+#include "../ufc2/NSEErrRepContinuity3D.h"
+#include "../ufc2/Drag3D.h"
+#include "../ufc2/NSEH1.h"
+#include "../ufc2/NSEH12.h"
+#include "../ufc2/NSEH1Momentum3D.h"
+#include "../ufc2/NSEH1Continuity3D.h"
+#include "../ufc2/NSEH1MomentumGlobal3D.h"
+#include "../ufc2/NSEH1ContinuityGlobal3D.h"
+#include "../ufc2/NSEMomentumResidual3D.h"
+#include "../ufc2/NSEContinuityResidual3D.h"
+#include "../ufc2/NSEMomentumResidualGlobal3D.h"
+#include "../ufc2/NSEContinuityResidualGlobal3D.h"
+#include "../ufc2/NSEErrEst.h"
+#include "../ufc2/NSEErrEstGlobal.h"
 #else
-#include "ufc2/NSEMomentum3D.h"
-#include "ufc2/NSEContinuity3D.h"
+#include "../ufc2/NSEMomentum3D.h"
+#include "../ufc2/NSEContinuity3D.h"
 #endif
 
-#include "dolfin/NodeNormal.h"
-#include "dolfin/SpaceTimeFunction.h"
-#include "dolfin/SlipBC.h"
+#include "../dolfin/NodeNormal.h"
+#include "../dolfin/SpaceTimeFunction.h"
+#include "../dolfin/SlipBC.h"
 
 #include <ostream>
 #include <iomanip>
@@ -70,8 +70,8 @@ real adapt_percent = 5.;
 real T;
 
 void ComputeTangentialVectors(Mesh& mesh,  Vector& tau_1, 
-			      Vector& tau_2, Vector& normal,
-			      Form& form, NodeNormal& node_normal)
+                              Vector& tau_2, Vector& normal,
+                              Form& form, NodeNormal& node_normal)
 {
   UFC ufc(form.form(), mesh, form.dofMaps());
   Cell c(mesh, 0);
@@ -94,13 +94,13 @@ void ComputeTangentialVectors(Mesh& mesh,  Vector& tau_1,
     {
       for(VertexIterator v(*cell); !v.end(); ++v, ii++) 
       {
-	if (!mesh.distdata().is_ghost(v->index(), 0)) 
-	{
-	  tau_1_block[jj] = node_normal.tau_1[i].get(*v);
-	  tau_2_block[jj] = node_normal.tau_2[i].get(*v);
-	  normal_block[jj] = node_normal.normal[i].get(*v);
-	  id[jj++] = idx[ii];
-	}
+        if (!mesh.distdata().is_ghost(v->index(), 0)) 
+        {
+          tau_1_block[jj] = node_normal.tau_1[i].get(*v);
+          tau_2_block[jj] = node_normal.tau_2[i].get(*v);
+          normal_block[jj] = node_normal.normal[i].get(*v);
+          id[jj++] = idx[ii];
+        }
       }
     }
 
@@ -122,7 +122,7 @@ void ComputeTangentialVectors(Mesh& mesh,  Vector& tau_1,
 
 // Comparison operator for index/value pairs
 struct less_pair : public std::binary_function<std::pair<int, real>,
-					       std::pair<int, real>, bool>
+                                               std::pair<int, real>, bool>
 {
   bool operator()(std::pair<int, real> x, std::pair<int, real> y)
   {
@@ -163,13 +163,13 @@ void merge(real *a,real *b,real *res,int an,int bn)
 }
 
 void ComputeLargestIndicators_cell(Mesh& mesh, Vector& e_indx, std::vector<int>& cells,
-						  real percentage)
+                                                  real percentage)
 {
   int N = mesh.numCells();
   int M = std::min((int)(N), 
-		   (int)((real) 
-			 (dolfin::MPI::numProcesses() > 1 ? 
-			  mesh.distdata().global_numCells() : mesh.numCells()) * percentage * 0.01));
+                   (int)((real) 
+                         (dolfin::MPI::numProcesses() > 1 ? 
+                          mesh.distdata().global_numCells() : mesh.numCells()) * percentage * 0.01));
   
   if(dolfin::MPI::processNumber() == 0)
     dolfin_set("output destination","terminal");
@@ -236,7 +236,7 @@ void ComputeLargestIndicators_cell(Mesh& mesh, Vector& e_indx, std::vector<int>&
     dest = (rank + i) % size;
 
     MPI_Sendrecv(local_eind, M, MPI_DOUBLE, dest, 0, 
-		 recv_eind, M_max, MPI_DOUBLE, src, 0, dolfin::MPI::DOLFIN_COMM, &status);
+                 recv_eind, M_max, MPI_DOUBLE, src, 0, dolfin::MPI::DOLFIN_COMM, &status);
     MPI_Get_count(&status, MPI_DOUBLE,&num_recv);
     //global_eind.insert(global_eind.end(), recv_eind, recv_eind + num_recv);
     merge(recv_eind, global_eind, work, num_recv, nm);
@@ -248,7 +248,7 @@ void ComputeLargestIndicators_cell(Mesh& mesh, Vector& e_indx, std::vector<int>&
   //  std::sort(global_eind.begin(), global_eind.end());
   cells.clear();
   int MM = (int)((real) (dolfin::MPI::numProcesses() > 1 ? 
-			 mesh.distdata().global_numCells() : mesh.numCells()) * percentage * 0.01);
+                         mesh.distdata().global_numCells() : mesh.numCells()) * percentage * 0.01);
   int i = 0;
   for(int j = 0; j < MM; j++) {
     if( local_eind[M - 1 - i] >= global_eind[M_tot - 1 - j] ) {
@@ -271,7 +271,7 @@ void ComputeLargestIndicators_cell(Mesh& mesh, Vector& e_indx, std::vector<int>&
 
 
 void ComputeLargestIndicators_eind(Mesh& mesh, Vector& e_indx, std::vector<int>& cells,
-						  real percentage)
+                                                  real percentage)
 {
   int N = mesh.numCells();
   real eind, sum_e, sum_e_local, max_e, max_e_local, min_e, min_e_local;
@@ -302,13 +302,13 @@ void ComputeLargestIndicators_eind(Mesh& mesh, Vector& e_indx, std::vector<int>&
   std::sort(indicators.begin(), indicators.end(), comp);
 
   MPI_Allreduce(&sum_e_local, &sum_e, 1, MPI_DOUBLE,
-		MPI_SUM, dolfin::MPI::DOLFIN_COMM);
+                MPI_SUM, dolfin::MPI::DOLFIN_COMM);
 
   MPI_Allreduce(&max_e_local, &max_e, 1, MPI_DOUBLE, 
-		MPI_MAX, dolfin::MPI::DOLFIN_COMM);
+                MPI_MAX, dolfin::MPI::DOLFIN_COMM);
 
   MPI_Allreduce(&min_e_local, &min_e, 1, MPI_DOUBLE, 
-		MPI_MIN, dolfin::MPI::DOLFIN_COMM);
+                MPI_MIN, dolfin::MPI::DOLFIN_COMM);
 
   real threshold = (percentage * 0.01 * sum_e);
   real cutoff = (max_e + min_e) / 2.0;
@@ -330,18 +330,18 @@ void ComputeLargestIndicators_eind(Mesh& mesh, Vector& e_indx, std::vector<int>&
       acc_local += p.second;
 
       if ( p.second < cutoff )
-	break;     
+        break;     
     }
 
     MPI_Allreduce(&acc_local, &acc, 1, MPI_DOUBLE, 
-		  MPI_SUM, dolfin::MPI::DOLFIN_COMM);
+                  MPI_SUM, dolfin::MPI::DOLFIN_COMM);
         
     ( acc > threshold ? (min_e = cutoff ) : (max_e = cutoff));    
   }
 }
 
 void ComputeRefinementMarkers(Mesh& mesh, real percentage, Vector& e_indx,
-			      MeshFunction<bool>& cell_refinement_marker)
+                              MeshFunction<bool>& cell_refinement_marker)
 {
 
   real error = 0.0;
@@ -388,11 +388,11 @@ void computeX(Function& XX, Form* aM, Mesh& mesh)
     {
       for(VertexIterator v(*cell); !v.end(); ++v, ii++)
       {
-	if (!mesh.distdata().is_ghost(v->index(), 0))
-	{
-	  XX_block[jj] = v->x()[i];
-	  id[jj++] = idx[ii];
-	}
+        if (!mesh.distdata().is_ghost(v->index(), 0))
+        {
+          XX_block[jj] = v->x()[i];
+          id[jj++] = idx[ii];
+        }
       }
     }
     XX.vector().set(XX_block, jj, id);
@@ -436,10 +436,10 @@ void Rotate(Function& XX, Form* aM, Mesh& mesh, double theta)
     {
       for(unsigned int i = 0; i < d; i++)
       {
-	if (i==0)
-	  xx.push_back(XX_block[i * local_dim + jj]);
-	if (i==1)
-	  yy.push_back(XX_block[i * local_dim + jj]);
+        if (i==0)
+          xx.push_back(XX_block[i * local_dim + jj]);
+        if (i==1)
+          yy.push_back(XX_block[i * local_dim + jj]);
       }
       jj++;
     }
@@ -455,20 +455,20 @@ void Rotate(Function& XX, Form* aM, Mesh& mesh, double theta)
 
       real r = pdiff.norm();
       if(r < 0.5)
-	theta2 = (0.0 - theta)*2*DOLFIN_PI/360.0;
+        theta2 = (0.0 - theta)*2*DOLFIN_PI/360.0;
       else if(r >= 0.5 && r < 1.0)
-	theta2 = (0.0 - theta)*2*DOLFIN_PI/360.0*(1.0 - r) / (1.0 - 0.5);
+        theta2 = (0.0 - theta)*2*DOLFIN_PI/360.0*(1.0 - r) / (1.0 - 0.5);
       else
-	theta2 = 0.0*2*DOLFIN_PI/360.0;
+        theta2 = 0.0*2*DOLFIN_PI/360.0;
 
       for(unsigned int i = 0; i < d; i++)
       {
-	if (i==0)
-	  XX_block[i * local_dim + j] = xx[j]*cos(theta2) - yy[j]*sin(theta2);
-	if (i==1)
-	  XX_block[i * local_dim + j] = xx[j]*sin(theta2) + yy[j]*cos(theta2);
+        if (i==0)
+          XX_block[i * local_dim + j] = xx[j]*cos(theta2) - yy[j]*sin(theta2);
+        if (i==1)
+          XX_block[i * local_dim + j] = xx[j]*sin(theta2) + yy[j]*cos(theta2);
 
-	geometry.x(vertex.index(), i) = XX_block[i * local_dim + j];
+        geometry.x(vertex.index(), i) = XX_block[i * local_dim + j];
       }
       j++;
     }
@@ -499,34 +499,14 @@ int main(int argc, char* argv[])
     theta = atof(argv[2]);
   }
 
-  if(simcase == "cube")
-  {
-    xmin = -10.0;
-    xmax = 30.0;
-    ymin = -10.0;
-    ymax = 10.0;
-    zmin = -10.0;
-    zmax = 10.0;
-    robj = 1. - bmarg;
-    T = 100.0;
-  }
-  else if(simcase == "wing")
-  {
-    xmin = -1.52;
-    xmax = 3.8;
-    ymin = -1.35;
-    ymax = 1.35;
-    zmin = -1.35;
-    zmax = 1.35;
-    robj = 1. - bmarg;
-    T = 20.0;
-  }
-
-  if(!(simcase == "cube" || simcase == "wing"))
-  {
-    cout << "Error: invalid simulation case: " << simcase << endl;
-    exit(0);
-  }
+  xmin = -10.0;
+  xmax = 30.0;
+  ymin = -10.0;
+  ymax = 10.0;
+  zmin = -10.0;
+  zmax = 10.0;
+  robj = 1. - bmarg;
+  T = 10.0;
 
   real primal_T = T;
   real dual_T = 1. * T / 2;
@@ -550,7 +530,7 @@ int main(int argc, char* argv[])
       values[2] = 0.0;
 
       if(x[0] <= xmax - bmarg)
- 	values[0] = 1.0;
+        values[0] = 1.0;
     }
   };
 
@@ -567,24 +547,11 @@ int main(int argc, char* argv[])
       values[1] = 0.0;
       values[2] = 0.0;
 
-      if(simcase == "cube")
+      if(fabs(x[0] - 0.0) < robj &&
+         fabs(x[1] - 0.0) < robj &&
+         fabs(x[2] - 0.0) < robj)
       {
-	if(fabs(x[0] - 0.0) < robj &&
-	   fabs(x[1] - 0.0) < robj &&
-	   fabs(x[2] - 0.0) < robj)
-	{
-	  values[0] = 1.0;
-	}
-      }
-      else if(simcase == "wing")
-      {
-	if(fabs(x[0] - 0.35) < robj &&
-	   fabs(x[1] - -0.06) < robj &&
-	   fabs(x[2] - 0.0) < 1.35)
-	{
-	  values[0] = 1.0;
-	  values[1] = 1.0;
-	}
+        values[0] = 1.0;
       }
     }
   };
@@ -642,7 +609,7 @@ int main(int argc, char* argv[])
       values[0] = 0.0;
 
       if(x[0] >= xmin + bmarg && x[0] <= xmax - bmarg)
- 	values[0] = 0.0;
+        values[0] = 0.0;
     }
   };
 
@@ -725,10 +692,10 @@ int main(int argc, char* argv[])
       values[1] = 0.0;
       values[2] = 0.0;
       if(x[0] >= xmin + bmarg && x[0] <= xmax - bmarg &&
-	 x[1] >= ymin + bmarg && x[1] <= ymax - bmarg &&
-	 x[2] >= zmin + bmarg && x[2] <= zmax - bmarg)
+         x[1] >= ymin + bmarg && x[1] <= ymax - bmarg &&
+         x[2] >= zmin + bmarg && x[2] <= zmax - bmarg)
       {
-	values[0] = 0.0;
+        values[0] = 0.0;
       }
     }
 
@@ -756,23 +723,11 @@ int main(int argc, char* argv[])
       values[1] = 0.0;
       values[2] = 0.0;
 
-      if(simcase == "cube")
+      if(fabs(x[0] - 0.0) < robj &&
+         fabs(x[1] - 0.0) < robj &&
+         fabs(x[2] - 0.0) < robj)
       {
-	if(fabs(x[0] - 0.0) < robj &&
-	   fabs(x[1] - 0.0) < robj &&
-	   fabs(x[2] - 0.0) < robj)
-	{
-	  values[0] = 1.0;
-	}
-      }
-      else if(simcase == "wing")
-      {
-	if(fabs(x[0] - 0.35) < robj &&
-	   fabs(x[1] - -0.06) < robj &&
-	   fabs(x[2] - 0.0) < 1.35)
-	{
-	  values[0] = 1.0;
-	}
+        values[0] = 1.0;
       }
     }
 
@@ -800,23 +755,11 @@ int main(int argc, char* argv[])
       values[1] = 0.0;
       values[2] = 0.0;
 
-      if(simcase == "cube")
+      if(fabs(x[0] - 0.0) < robj &&
+         fabs(x[1] - 0.0) < robj &&
+         fabs(x[2] - 0.0) < robj)
       {
-	if(fabs(x[0] - 0.0) < robj &&
-	   fabs(x[1] - 0.0) < robj &&
-	   fabs(x[2] - 0.0) < robj)
-	{
-	  values[1] = 1.0;
-	}
-      }
-      else if(simcase == "wing")
-      {
-	if(fabs(x[0] - 0.35) < robj &&
-	   fabs(x[1] - -0.06) < robj &&
-	   fabs(x[2] - 0.0) < 1.35)
-	{
-	  values[1] = 1.0;
-	}
+        values[1] = 1.0;
       }
     }
 
@@ -839,19 +782,19 @@ int main(int argc, char* argv[])
   Assembler assembler(mesh);
 
   message("Running on %d %s", dolfin::MPI::numProcesses(), 
-	  (dolfin::MPI::numProcesses() > 1 ? "nodes" : "node"));
+          (dolfin::MPI::numProcesses() > 1 ? "nodes" : "node"));
   message("Global number of vertices: %d", 
-	  (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
+          (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
   message("Global number of cells: %d", 
-	  (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
+          (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
 
 //    for(int i = 0; i < 1; i++)
 //      mesh.refine();
 
   message("Global number of vertices: %d", 
-	  (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
+          (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
   message("Global number of cells: %d", 
-	  (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
+          (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
 
   MeshSize h(mesh);
   FacetNormal n(mesh);
@@ -1169,161 +1112,179 @@ int main(int argc, char* argv[])
       
       if(solver == "dual")
       {
-	cout << "eval dual" << endl;
-	Up->eval(s);
-	dtUp->eval(s);
-	Pp->eval(s);
-	Rmp->eval(s);
-	Rcp->eval(s);
-	cout << "eval dual done" << endl;
+        cout << "eval dual" << endl;
+        Up->eval(s);
+        dtUp->eval(s);
+        Pp->eval(s);
+        Rmp->eval(s);
+        Rcp->eval(s);
+        cout << "eval dual done" << endl;
       }
       
       real umax = u.vector().norm(linf);
       if(solver == "dual")
-	umax = up.vector().norm(linf);
+        umax = up.vector().norm(linf);
 
       if(stepcounter >= 100)
       {
-	if(iteration0 > 5)
-	  stabcounter = 10;
-	k = 4.0*hmin/std::max(1., umax);
- 	if(hmin >= 0.1)
- 	{
- 	  k = 0.5*hmin/std::max(1., umax);
- 	}
-	if(stabcounter > 0)
-	  k /= 4.;
-	kf.init(mesh, k);
+        if(iteration0 > 5)
+          stabcounter = 10;
+        k = 4.0*hmin/std::max(1., umax);
+        if(hmin >= 0.1)
+        {
+          k = 0.5*hmin/std::max(1., umax);
+        }
+        if(stabcounter > 0)
+          k /= 4.;
+        kf.init(mesh, k);
       }
 
       // Fixed-point iteration
       for(int i = 0; i < maxit; i++)
       {
-	cout << "Solving momentum" << endl;
-	real timer = time();
-	pde_m->solve(U);
-	rd_u.vector() = U.vector();
-	rd_u.vector() -= u.vector();
-	real rd_u_norm = rd_u.vector().norm(l2);
-	u.vector() = U.vector();
-	
-	cout << "Solving continuity" << endl;
-	pde_c->solve(P);
-	p.vector() = P.vector();
-	rd_p.vector() = p.vector();
-	rd_p.vector() -= p0.vector();
-	real rd_p_norm = rd_p.vector().norm(l2);
-	
-	cout << "Iteration info: " << "Unorm: " << U.vector().norm(linf) << " Pnorm: " << P.vector().norm(linf) << " Uincr: " <<  rd_u_norm << " Pincr: " <<  rd_p_norm << " k: " << k << " step: " << stepcounter << " t: " << t << " timer: " << time() - timer << endl;
-	cout << "iteration: " << i << endl;
-	iteration0 = i;
- 	if(rd_u_norm / u.vector().norm(l2) <= rdtol && rd_p_norm / p.vector().norm(l2) <= rdtol)
-	{
-	  cout << "Step info: " << "Unorm: " << U.vector().norm(linf) << " Pnorm: " << P.vector().norm(linf) << " Uincr: " <<  rd_u_norm / u.vector().norm(l2) << " Pincr: " <<  rd_p_norm / p.vector().norm(l2) << " k: " << k << " step: " << stepcounter << " iters: " << iteration0 + 1 << " t: " << t << " timer: " << time() - stimer << endl;
- 	  break;
-	}
- 	p0.vector() = p.vector();
+        cout << "Solving momentum" << endl;
+        real timer = time();
+        pde_m->solve(U);
+        rd_u.vector() = U.vector();
+        rd_u.vector() -= u.vector();
+        real rd_u_norm = rd_u.vector().norm(l2);
+        u.vector() = U.vector();
+        
+        cout << "Solving continuity" << endl;
+        pde_c->solve(P);
+        p.vector() = P.vector();
+        rd_p.vector() = p.vector();
+        rd_p.vector() -= p0.vector();
+        real rd_p_norm = rd_p.vector().norm(l2);
+        
+        cout << "Iteration info: " <<
+          "Unorm: " << U.vector().norm(linf) <<
+          " Pnorm: " << P.vector().norm(linf) <<
+          " Uincr: " <<  rd_u_norm <<
+          " Pincr: " <<  rd_p_norm <<
+          " k: " << k <<
+          " step: " << stepcounter <<
+          " t: " << t <<
+          " timer: " << time() - timer << endl;
+        cout << "iteration: " << i << endl;
+        iteration0 = i;
+        if(rd_u_norm / u.vector().norm(l2) <= rdtol && rd_p_norm / p.vector().norm(l2) <= rdtol)
+        {
+          cout << "Step info: " <<
+            "Unorm: " << U.vector().norm(linf) <<
+            " Pnorm: " << P.vector().norm(linf) <<
+            " Uincr: " <<  rd_u_norm / u.vector().norm(l2) <<
+            " Pincr: " <<  rd_p_norm / p.vector().norm(l2) <<
+            " k: " << k <<
+            " step: " << stepcounter <<
+            " iters: " << iteration0 + 1 <<
+            " t: " << t <<
+            " timer: " << time() - stimer << endl;
+          break;
+        }
+        p0.vector() = p.vector();
       }
       
       if(solver == "dual")
       {
-	cout << "errest" << endl;
-	assembler.assemble(eij_m.vector(), Lrep_m);
-	ei_m.vector().axpy(k, eij_m.vector());
-	assembler.assemble(eij_c.vector(), Lrep_c);
-	ei_c.vector().axpy(k, eij_c.vector());
-	cout << "errest done: " << ei_m.vector().norm(linf) << " " << ei_c.vector().norm(linf) << endl;
+        cout << "errest" << endl;
+        assembler.assemble(eij_m.vector(), Lrep_m);
+        ei_m.vector().axpy(k, eij_m.vector());
+        assembler.assemble(eij_c.vector(), Lrep_c);
+        ei_c.vector().axpy(k, eij_c.vector());
+        cout << "errest done: " << ei_m.vector().norm(linf) << " " << ei_c.vector().norm(linf) << endl;
 
-	assembler.assemble(wm.vector(), Lwm);
-	real H1dualm = assembler.assemble(Mwm);
-	tot_H1dualm += k*H1dualm;
-	real H1dualgm = sqrt(assembler.assemble(Mgwm));
-	tot_H1dualgm += k*H1dualgm;
-	real H1dualgstm = assembler.assemble(Mgwm);
-	tot_H1dualgstm += k*H1dualgstm;
-	wmtot.vector().axpy(k, wm.vector());
-	assembler.assemble(wc.vector(), Lwc);
-	real H1dualc = assembler.assemble(Mwc);
-	tot_H1dualc += k*H1dualc;
-	real H1dualgc = sqrt(assembler.assemble(Mgwc));
-	tot_H1dualgc += k*H1dualgc;
-	real H1dualgstc = assembler.assemble(Mgwc);
-	tot_H1dualgstc += k*H1dualgstc;
-	wctot.vector().axpy(k, wc.vector());
+        assembler.assemble(wm.vector(), Lwm);
+        real H1dualm = assembler.assemble(Mwm);
+        tot_H1dualm += k*H1dualm;
+        real H1dualgm = sqrt(assembler.assemble(Mgwm));
+        tot_H1dualgm += k*H1dualgm;
+        real H1dualgstm = assembler.assemble(Mgwm);
+        tot_H1dualgstm += k*H1dualgstm;
+        wmtot.vector().axpy(k, wm.vector());
+        assembler.assemble(wc.vector(), Lwc);
+        real H1dualc = assembler.assemble(Mwc);
+        tot_H1dualc += k*H1dualc;
+        real H1dualgc = sqrt(assembler.assemble(Mgwc));
+        tot_H1dualgc += k*H1dualgc;
+        real H1dualgstc = assembler.assemble(Mgwc);
+        tot_H1dualgstc += k*H1dualgstc;
+        wctot.vector().axpy(k, wc.vector());
 
-	real Rmi = assembler.assemble(MRm);
-	tot_Rm += k*Rmi;
-	real Rgmi = 0.0;
-	Rmtot.vector().axpy(k, Rm.vector());
-	real Rci = assembler.assemble(MRc);
-	tot_Rc += k*Rci;
-	real Rgci = 0.0;
-	Rctot.vector().axpy(k, Rc.vector());
+        real Rmi = assembler.assemble(MRm);
+        tot_Rm += k*Rmi;
+        real Rgmi = 0.0;
+        Rmtot.vector().axpy(k, Rm.vector());
+        real Rci = assembler.assemble(MRc);
+        tot_Rc += k*Rci;
+        real Rgci = 0.0;
+        Rctot.vector().axpy(k, Rc.vector());
 
-	real errest_cs = assembler.assemble(MHerrest);
-	int_errest_cs += k*errest_cs;
-	real errest_gcs = sqrt(assembler.assemble(MHerrestg));
-	int_errest_gcs += k*errest_gcs;
-	real errest_gstcs = assembler.assemble(MHerrestg);
-	int_errest_gstcs += k*errest_gstcs;
-	n_mean++;
+        real errest_cs = assembler.assemble(MHerrest);
+        int_errest_cs += k*errest_cs;
+        real errest_gcs = sqrt(assembler.assemble(MHerrestg));
+        int_errest_gcs += k*errest_gcs;
+        real errest_gstcs = assembler.assemble(MHerrestg);
+        int_errest_gstcs += k*errest_gstcs;
+        n_mean++;
 
-	cout << "step dual t: " << t <<
-	  " dualm: " << H1dualm <<
-	  " dualc: " << H1dualc <<
-	  " dualgm: " << H1dualgm <<
-	  " dualgc: " << H1dualgc <<
-	  " Rm: " << Rmi <<
-	  " Rc: " << Rci <<
-	  " Rgm: " << Rgmi <<
-	  " Rgc: " << Rgci <<
-	  " errest_cs: " << errest_cs <<
-	  " errest_gcs: " << errest_gcs <<
-	  endl;
+        cout << "step dual t: " << t <<
+          " dualm: " << H1dualm <<
+          " dualc: " << H1dualc <<
+          " dualgm: " << H1dualgm <<
+          " dualgc: " << H1dualgc <<
+          " Rm: " << Rmi <<
+          " Rc: " << Rci <<
+          " Rgm: " << Rgmi <<
+          " Rgc: " << Rgci <<
+          " errest_cs: " << errest_cs <<
+          " errest_gcs: " << errest_gcs <<
+          endl;
       }
 
       if(solver == "primal")
       {
-	real drag = 0.0, lift = 0.0;
-	drag = assembler.assemble(Md);
-	cout << "drag: " << drag << " t = " << t << endl;
-	lift = assembler.assemble(Ml);
-	cout << "lift: " << lift << " t = " << t << endl;
+        real drag = 0.0, lift = 0.0;
+        drag = assembler.assemble(Md);
+        cout << "drag: " << drag << " t = " << t << endl;
+        lift = assembler.assemble(Ml);
+        cout << "lift: " << lift << " t = " << t << endl;
 
-	assembler.assemble(Rm.vector(), LRm);
-	real Rmi = assembler.assemble(MRm);
-	cout << "step primal Rm: " << Rmi << endl;
-	assembler.assemble(Rc.vector(), LRc);
-	real Rci = assembler.assemble(MRc);
-	cout << "step primal Rc: " << Rci << endl;
+        assembler.assemble(Rm.vector(), LRm);
+        real Rmi = assembler.assemble(MRm);
+        cout << "step primal Rm: " << Rmi << endl;
+        assembler.assemble(Rc.vector(), LRc);
+        real Rci = assembler.assemble(MRc);
+        cout << "step primal Rc: " << Rci << endl;
 
-	if(t >= dual_T)
-	{
-	  // Output drag and lift, together with other diagnostics
+        if(t >= dual_T)
+        {
+          // Output drag and lift, together with other diagnostics
 
-	  tot_drag = (drag + n_mean*tot_drag) / (n_mean + 1);
-	  cout << "step t: " << t << " drag: " << drag << " lift: " << lift << endl;
-	  real H1primal = assembler.assemble(MH1);
-	  tot_H1primal = (H1primal + n_mean*tot_H1primal) / (n_mean + 1);
-	  real H1primal2 = assembler.assemble(MH12);
-	  tot_H1primal2 = (H1primal2 + n_mean*tot_H1primal2) / (n_mean + 1);
-	  cout << "step H1 primal: " << tot_H1primal << endl;
-	  cout << "step H1 primal2: " << tot_H1primal2 << endl;
-	  n_mean++;
+          tot_drag = (drag + n_mean*tot_drag) / (n_mean + 1);
+          cout << "step t: " << t << " drag: " << drag << " lift: " << lift << endl;
+          real H1primal = assembler.assemble(MH1);
+          tot_H1primal = (H1primal + n_mean*tot_H1primal) / (n_mean + 1);
+          real H1primal2 = assembler.assemble(MH12);
+          tot_H1primal2 = (H1primal2 + n_mean*tot_H1primal2) / (n_mean + 1);
+          cout << "step H1 primal: " << tot_H1primal << endl;
+          cout << "step H1 primal2: " << tot_H1primal2 << endl;
+          n_mean++;
 
-	  real Rgstmi = assembler.assemble(MRgm);
-	  tot_Rgstm += k*Rgstmi;
-	  real Rgstci = assembler.assemble(MRgc);
-	  tot_Rgstc += k*Rgstci;
-	}
+          real Rgstmi = assembler.assemble(MRgm);
+          tot_Rgstm += k*Rgstmi;
+          real Rgstci = assembler.assemble(MRgc);
+          tot_Rgstc += k*Rgstci;
+        }
       }
 
       if(stepcounter == 0 || t > T*(real(sample)/real(no_samples)))
       {
-	if(solver == "primal")
-	{
-	  file_u << u; file_p << p;
-	  
+        if(solver == "primal")
+        {
+          file_u << u; file_p << p;
+
+          // Save primal velocity
           up.vector() = u.vector(); up.vector() += u0.vector(); up.vector() /= 2.;
           File ubinfile(Up->getNewFilename(t));
           ubinfile << up.vector();
@@ -1343,13 +1304,13 @@ int main(int argc, char* argv[])
 
           File Rcbinfile(Rcp->getNewFilename(t));
           Rcbinfile << Rc.vector();
-	}
-	else
-	{
-	  file_du << u; file_dp << p;
-	}
-	
-	sample++;
+        }
+        else
+        {
+          file_du << u; file_dp << p;
+        }
+        
+        sample++;
       }
       
       u0.vector() = u.vector();
@@ -1358,7 +1319,7 @@ int main(int argc, char* argv[])
       t += k;
       stepcounter++;
       if(stabcounter > 0)
-	stabcounter--;
+        stabcounter--;
     }
     
 
@@ -1380,10 +1341,10 @@ int main(int argc, char* argv[])
       cout << "Preparing adaptivity" << endl;
       // Adaptive error control
       if(!ParameterSystem::parameters.defined("adapt_algorithm"))
-	dolfin_add("adapt_algorithm", "rivara");
+        dolfin_add("adapt_algorithm", "rivara");
       dolfin_set("adapt_algorithm", "rivara");
       if(!ParameterSystem::parameters.defined("output_format"))
-	dolfin_add("output_format", "binary");
+        dolfin_add("output_format", "binary");
       dolfin_set("output_format", "binary");
       MeshFunction<bool> cell_marker;
 
@@ -1432,7 +1393,7 @@ int main(int argc, char* argv[])
       // Initialize eimf - assumption on dofmap for DG0
       for (CellIterator c(mesh); !c.end(); ++c)
       {
-	eimf.set(*c, eif.vector()[c->index()]);
+        eimf.set(*c, eif.vector()[c->index()]);
       }
 
       MPI_Barrier(dolfin::MPI::DOLFIN_COMM);
@@ -1445,22 +1406,22 @@ int main(int argc, char* argv[])
       ComputeRefinementMarkers(mesh, adapt_percent, ei, cell_marker);
 
       if(MPI::processNumber() == 0)
-	dolfin_set("output destination","terminal");
+        dolfin_set("output destination","terminal");
       message("Adaptive refinement");
       message("cells before: %d",
-	      (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
+              (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
       message("vertices before: %d",
-	      (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
+              (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
       dolfin_set("output destination","silent");
 
       RivaraRefinement::refine(mesh, cell_marker);
 
       if(MPI::processNumber() == 0)
-	dolfin_set("output destination","terminal");
+        dolfin_set("output destination","terminal");
       message("cells after: %d",
-	      (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
+              (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
       message("vertices after: %d",
-	      (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
+              (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
       dolfin_set("output destination","silent");
       
       File file_rm("rmesh.bin");

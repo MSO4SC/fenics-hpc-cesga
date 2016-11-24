@@ -52,9 +52,31 @@ SpaceTimeFunction::~SpaceTimeFunction()
 
 }
 //-----------------------------------------------------------------------------
+void SpaceTimeFunction::setBasename(const std::string _basename)
+{
+  basename = _basename;
+#ifndef ENABLE_MPIIO
+  std::stringstream numberedBasename;
+  numberedBasename << basename << "_" << MPI::processNumber();
+  basename = numberedBasename.str();
+#endif
+}
+//-----------------------------------------------------------------------------
+std::string SpaceTimeFunction::getNewFilename(const real t, const std::string extension)
+{
+  std::size_t newIndex = U_files.size();
+  std::stringstream number;
+  number << std::setfill('0') << std::setw(6) << newIndex;
+  std::stringstream ufilename;
+  ufilename << basename << number.str() << extension << std::ends;
+
+  addPoint(ufilename.str(),t);
+
+  return ufilename.str();
+}
+//-----------------------------------------------------------------------------
 void SpaceTimeFunction::eval(real t)
 {
-  
   std::map<real, std::string>::iterator it1;
   std::map<real, std::string>::iterator it0;
   
@@ -166,82 +188,7 @@ void SpaceTimeFunction::util_addFiles(std::vector<std::string> filenames)
 #else
   error("MPI I/O required for space time functions with arbitrary time step");
 #endif
-  
 }
-
-//-----------------------------------------------------------------------------
-void SpaceTimeFunction::util_addFiles(std::vector<std::string> filenames,
-                                      real T)
-{
-  //FIXME: For now we assume a fixed time step
-  
-  int counter = 0;
-  int num_files = filenames.size();
-  
-  if (num_files == 1)
-  {
-    error("Divide by zero");
-  }
-  for (std::vector<std::string>::iterator it = filenames.begin();
-       it != filenames.end(); ++it)
-  {
-    std::string filename = *it;
-    
-    // OK guys this is *only* valid if we do the right thing i.e:
-    // - num_files is the number of samples
-    // - T is the measure of the time interval for solving the dual problem
-    //	 i.e [sampling_start_time, primal_end_time]
-    real t = T * real(counter) / real(num_files - 1);
-    std::cout << "add intermediate time t = " << t << std::endl;
-    
-    addPoint(filename, t);
-    
-    counter++;
-  }
-  if (counter == 0)
-  {
-    error("Counter irremediably stayed stuck at zero.");
-  }
-  for (std::map<real, std::string>::const_iterator it = U_files.begin();
-       it != U_files.end(); ++it)
-  {
-    std::cout << std::setw(4) << it->first << " : " << it->second << std::endl;
-  }
-  
-}
-//-----------------------------------------------------------------------------
-void SpaceTimeFunction::util_fileList(std::string basename, int N,
-                                      std::vector<std::string>& filenames)
-{
-  filenames.clear();
-  
-  // OK so N is the number of samples spanning [T0,T1]
-  // Then there are N - 1 time intervals
-  for (int sample_id = 0; sample_id < N; ++sample_id)
-  {
-    std::stringstream filename, number;
-    number.fill('0');
-    number.width(6);
-    
-    number << sample_id;
-    
-    filename << basename;
-    filename << number.str();
-#ifdef ENABLE_MPIIO
-    filename << ".bin";
-#else
-    filename << "_" << MPI::processNumber() << ".bin";
-#endif
-    filename << std::ends;
-    
-    filenames.push_back(filename.str());
-  }
-  if (filenames.size() == 0)
-  {
-    error("Trying to interpolate over zero samples");
-  }
-}
-
 //-----------------------------------------------------------------------------
 Mesh& SpaceTimeFunction::mesh()
 {
