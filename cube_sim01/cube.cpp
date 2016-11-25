@@ -53,13 +53,143 @@
 
 using namespace dolfin;
 
+// Inflow velocity
+class Inflow : public Function
+{
+public:
+
+  Inflow(Mesh& mesh) : Function(mesh) {}
+
+  void eval(real* values, const real* x) const
+  {
+    values[0] = 0.0;
+    values[1] = 0.0;
+    values[2] = 0.0;
+
+    if(x[0] <= xmax - bmarg)
+      values[0] = 1.0;
+  }
+};
+
+// Inflow velocity for the dual problem
+class DualInflow : public Function
+{
+public:
+
+  DualInflow(Mesh& mesh) : Function(mesh) {}
+
+  void eval(real* values, const real* x) const
+  {
+    values[0] = 0.0;
+    values[1] = 0.0;
+    values[2] = 0.0;
+
+    if(fabs(x[0] - 0.0) < robj &&
+       fabs(x[1] - 0.0) < robj &&
+       fabs(x[2] - 0.0) < robj)
+    {
+      values[0] = 1.0;
+    }
+  }
+};
+
+// Outflow pressure
+class Outflow : public Function
+{
+public:
+
+  Outflow(Mesh& mesh) : Function(mesh) {}
+
+  void eval(real* values, const real* x) const
+  {
+    values[0] = 0.0;
+  }
+
+};
+
+// Sub domain for Dirichlet boundary condition
+class AllBoundary : public SubDomain
+{
+  bool inside(const real* x, bool on_boundary) const
+  {
+    return on_boundary;
+  }
+};
+
+// Sub domain for Dirichlet boundary condition
+class DirichletBoundary : public SubDomain
+{
+  bool inside(const real* x, bool on_boundary) const
+  {
+    return x[0] <= xmax - bmarg && on_boundary;
+  }
+};
+
+// Sub domain for Dirichlet boundary condition
+class SlipBoundary : public SubDomain
+{
+  bool inside(const real* x, bool on_boundary) const
+  {
+    return x[0] >= xmin + bmarg && x[0] <= xmax - bmarg && on_boundary;
+  }
+};
+
 int main(int argc, char* argv[])
 {
   // Create mesh
   Mesh mesh("mesh.bin");
   //Mesh mesh("mesh.xml");
+  
+      NodeNormal *nn;
+      nn = new NodeNormal(mesh);
 
-  NSESolver solver(mesh);
+      // Create boundary conditions
+      Inflow *inflow;
+      DualInflow *dinflow;
+      Outflow *outflow;
+      ThetaDrag *thetadrag;
+      ThetaLift *thetalift;
+      SlipMarker *sm;
+      DirichletBoundary *dboundary;
+      OutflowBoundary *oboundary;
+      InflowBoundary *iboundary;
+      SlipBoundary *sboundary;
+      AllBoundary *aboundary;
+      DirichletBC *bc_in_m;
+      DirichletBC *bc_c;
+      SlipBC *slipbc_m;
+      DirichletBC *bc_dm;
+
+      Array<BoundaryCondition*> bcs_m;
+      Array<BoundaryCondition*> bcs_dm;
+
+      inflow = new Inflow(mesh);
+      dinflow = new DualInflow(mesh);
+      outflow = new Outflow(mesh);
+      thetadrag = new ThetaDrag(mesh);
+      thetalift = new ThetaLift(mesh);
+      sm = new SlipMarker(mesh);
+      dboundary = new DirichletBoundary;
+      oboundary = new OutflowBoundary;
+      iboundary = new InflowBoundary;
+      sboundary = new SlipBoundary;
+      aboundary = new AllBoundary;
+      bc_in_m = new DirichletBC(*inflow, mesh, *iboundary);
+      bc_c = new DirichletBC(*outflow, mesh, *oboundary);
+      slipbc_m = new SlipBC(mesh, *sboundary, *nn);
+      bc_dm = new DirichletBC(*dinflow, mesh, *aboundary);
+
+      bcs_m.push_back(bc_in_m);
+      bcs_m.push_back(slipbc_m);
+
+      bcs_dm.push_back(bc_dm);
+
+  NSESolver solver(
+      mesh,
+      bcs_m,
+      bcs_dm,
+      bc_c
+      );
   solver.run();
 
   return 0;

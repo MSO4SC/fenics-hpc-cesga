@@ -475,87 +475,6 @@ void Rotate(Function& XX, Form* aM, Mesh& mesh, double theta)
   MPI_Barrier(dolfin::MPI::DOLFIN_COMM);
 }
 
-// Inflow velocity
-class Inflow : public Function
-{
-public:
-
-  Inflow(Mesh& mesh) : Function(mesh) {}
-
-  void eval(real* values, const real* x) const
-  {
-    values[0] = 0.0;
-    values[1] = 0.0;
-    values[2] = 0.0;
-
-    if(x[0] <= xmax - bmarg)
-      values[0] = 1.0;
-  }
-};
-
-// Inflow velocity for the dual problem
-class DualInflow : public Function
-{
-public:
-
-  DualInflow(Mesh& mesh) : Function(mesh) {}
-
-  void eval(real* values, const real* x) const
-  {
-    values[0] = 0.0;
-    values[1] = 0.0;
-    values[2] = 0.0;
-
-    if(fabs(x[0] - 0.0) < robj &&
-       fabs(x[1] - 0.0) < robj &&
-       fabs(x[2] - 0.0) < robj)
-    {
-      values[0] = 1.0;
-    }
-  }
-};
-
-// Outflow pressure
-class Outflow : public Function
-{
-public:
-
-  Outflow(Mesh& mesh) : Function(mesh) {}
-
-  void eval(real* values, const real* x) const
-  {
-    values[0] = 0.0;
-  }
-
-};
-
-// Sub domain for Dirichlet boundary condition
-class AllBoundary : public SubDomain
-{
-  bool inside(const real* x, bool on_boundary) const
-  {
-    return on_boundary;
-  }
-};
-
-// Sub domain for Dirichlet boundary condition
-class DirichletBoundary : public SubDomain
-{
-  bool inside(const real* x, bool on_boundary) const
-  {
-    return x[0] <= xmax - bmarg && on_boundary;
-  }
-};
-
-// Sub domain for Dirichlet boundary condition
-class SlipBoundary : public SubDomain
-{
-  bool inside(const real* x, bool on_boundary) const
-  {
-    return x[0] >= xmin + bmarg && x[0] <= xmax - bmarg && on_boundary;
-  }
-};
-
 // Marker function for weak boundary condition
 class SlipMarker : public Function
 {
@@ -737,7 +656,16 @@ public:
 class NSESolver
 {
 public:
-    NSESolver(Mesh& mesh) : mesh(mesh)
+    NSESolver(
+        Mesh& mesh,
+        Array<BoundaryCondition*> bcs_m,
+        Array<BoundaryCondition*> bcs_dm,
+        DirichletBC* bc_c
+        ) :
+      mesh(mesh),
+      bcs_m(bcs_m),
+      bcs_dm(bcs_dm),
+      bc_c(bc_c)
     {
 
       real theta = 0.;
@@ -761,7 +689,7 @@ public:
       zmin = -10.0;
       zmax = 10.0;
       robj = 1. - bmarg;
-      T = 10.0;
+      T = 5.0;
 
       primal_T = T;
       dual_T = 1. * T / 2;
@@ -794,37 +722,32 @@ public:
       cv = new CellVolume(mesh);
 
       // Create boundary conditions
-      inflow = new Inflow(mesh);
-      dinflow = new DualInflow(mesh);
-      outflow = new Outflow(mesh);
       thetadrag = new ThetaDrag(mesh);
       thetalift = new ThetaLift(mesh);
       sm = new SlipMarker(mesh);
-      dboundary = new DirichletBoundary;
       oboundary = new OutflowBoundary;
       iboundary = new InflowBoundary;
-      sboundary = new SlipBoundary;
-      aboundary = new AllBoundary;
-      bc_in_m = new DirichletBC(*inflow, mesh, *iboundary);
-      bc_c = new DirichletBC(*outflow, mesh, *oboundary);
-      slipbc_m = new SlipBC(mesh, *sboundary, *nn);
-      bc_dm = new DirichletBC(*dinflow, mesh, *aboundary);
+//      bc_in_m = new DirichletBC(*inflow, mesh, *iboundary);
+//      bc_c = new DirichletBC(*outflow, mesh, *oboundary);
+  //    slipbc_m = new SlipBC(mesh, *sboundary, *nn);
+//      bc_dm = new DirichletBC(*dinflow, mesh, *aboundary);
 
-      bcs_m.push_back(bc_in_m);
-      bcs_m.push_back(slipbc_m);
+//      bcs_m.push_back(bc_in_m);
+//      bcs_m.push_back(slipbc_m);
 
-      bcs_dm.push_back(bc_dm);
+//      bcs_dm.push_back(bc_dm);
 
 
+#warning "unused variables"
       uint *c_indices = 0;
       uint *indices = 0;
 
       hmin = h->min();
       cout << "hmin: " << hmin << endl;
       
-      PsiMomentum psim(mesh);
-      PsiContinuity psic(mesh);
-      BPsiMomentum bpsim(mesh);
+      psim = new PsiMomentum(mesh);
+      psic = new PsiContinuity(mesh);
+      bpsim = new BPsiMomentum(mesh);
 
       k = 0.1*hmin;
       nu = 0.0;
@@ -845,12 +768,13 @@ public:
       p0 = new Function;
       nuf = new Function(mesh, nu);
       kf = new Function(mesh, k);
-      Function k0f(mesh, 0.0);
       c1f = new Function(mesh, c1);
-      Function c2f(mesh, c2);
+      c2f = new Function(mesh, c2);
       hminf = new Function(mesh, c3*hmin);
-      Function umean;
       dtu = new Function;
+#warning "unused variableS"
+      Function k0f(mesh, 0.0);
+      Function umean;
 
       Function X;
 
@@ -890,12 +814,12 @@ public:
       Lp_c = new NSEContinuity3DLinearForm(*u, *p, *h, *kf, *c1f, *u0, *p0, *hminf);
 
       //NSEDualMomentum3DBilinearForm ad_m(*u, *up, *nuf, *h, *kf, *c1f, c2f, *u0);
-      ad_m = new NSEDualMomentum3DBilinearForm(*u, *up, *p, *nuf, *h, *kf, *c1f, c2f, *u0);
-      Ld_m = new NSEDualMomentum3DLinearForm(*u, *up, *p, *nuf, *h, *kf, *c1f, c2f, *u0, psim, bpsim);
+      ad_m = new NSEDualMomentum3DBilinearForm(*u, *up, *p, *nuf, *h, *kf, *c1f, *c2f, *u0);
+      Ld_m = new NSEDualMomentum3DLinearForm(*u, *up, *p, *nuf, *h, *kf, *c1f, *c2f, *u0, *psim, *bpsim);
 
-      ad_c = new NSEDualContinuity3DBilinearForm(*u, *h, *kf, *c1f, c2f, *hminf);
+      ad_c = new NSEDualContinuity3DBilinearForm(*u, *h, *kf, *c1f, *c2f, *hminf);
       //NSEDualContinuity3DLinearForm Ld_c(*u, *up, *p, *h, *kf, *c1f, *u0, *p0, *hminf, psic);
-      Ld_c = new NSEDualContinuity3DLinearForm(*u, *p, *h, *kf, *c1f, c2f, *u0, *p0, *hminf, psic);
+      Ld_c = new NSEDualContinuity3DLinearForm(*u, *p, *h, *kf, *c1f, *c2f, *u0, *p0, *hminf, *psic);
 
       Lrep_m = new NSEErrRepMomentum3DLinearForm(*up, *pp, *nuf, *dtup, *u);
       Lrep_c = new NSEErrRepContinuity3DLinearForm(*up, *p);
@@ -1437,12 +1361,13 @@ private:
       Function* nuf;
       Function* kf;
       Function* c1f;
-      Function *hminf;
+      Function* c2f;
+      Function* hminf;
 
       Function* up;
       Function* pp;
       Function* up0;
-      Function *dtu;
+      Function* dtu;
       Function* dtup;
 
       Function *Rm, *Rmtot;
@@ -1548,27 +1473,23 @@ private:
       Function *tau_2;
       Function *normal;
 
+      // Create boundary conditions
+      ThetaDrag *thetadrag;
+      ThetaLift *thetalift;
       SlipMarker *sm;
+      OutflowBoundary *oboundary;
+      InflowBoundary *iboundary;
+      DirichletBC *bc_in_m;
+      DirichletBC* bc_c;
+      SlipBC *slipbc_m;
+      DirichletBC *bc_dm;
 
       Array<BoundaryCondition*> bcs_m;
       Array<BoundaryCondition*> bcs_dm;
 
-      // Create boundary conditions
-      Inflow *inflow;
-      DualInflow *dinflow;
-      Outflow *outflow;
-      ThetaDrag *thetadrag;
-      ThetaLift *thetalift;
-
-      DirichletBoundary *dboundary;
-      OutflowBoundary *oboundary;
-      InflowBoundary *iboundary;
-      SlipBoundary *sboundary;
-      AllBoundary *aboundary;
-      DirichletBC *bc_in_m;
-      DirichletBC *bc_c;
-      SlipBC *slipbc_m;
-      DirichletBC *bc_dm;
+      PsiMomentum *psim;
+      PsiContinuity *psic;
+      BPsiMomentum *bpsim;
 };
 
 #endif /* end of include guard: NSESOLVER_H */
