@@ -45,6 +45,10 @@
 
 using namespace dolfin;
 
+typedef std::vector<std::pair<SubDomain*,Function*>> DirichletBCList;
+typedef std::vector<SubDomain*> SlipBCList;
+
+
 real bmarg = 1.0e-5 + DOLFIN_EPS;
 
 std::string simcase = "cube";
@@ -491,24 +495,6 @@ public:
   }
 };
 
-// Sub domain for Dirichlet boundary condition
-class InflowBoundary : public SubDomain
-{
-  bool inside(const real* x, bool on_boundary) const
-  {
-    return x[0] <= xmin + bmarg && on_boundary;
-  }
-};
-
-// Sub domain for Dirichlet boundary condition
-class OutflowBoundary : public SubDomain
-{
-  bool inside(const real* x, bool on_boundary) const
-  {
-    return x[0] >= xmax - bmarg && on_boundary;
-  }
-};
-
 // Dual volume source for momentum
 class PsiMomentum : public Function
 {
@@ -658,16 +644,13 @@ class NSESolver
 public:
     NSESolver(
         Mesh& mesh,
-        Array<BoundaryCondition*> bcs_m,
-        Array<BoundaryCondition*> bcs_dm,
-        DirichletBC* bc_c
+        DirichletBCList dbcs_m,
+        SlipBCList sbcs_m,
+        DirichletBCList dbcs_c,
+        DirichletBCList dbcs_dm
         ) :
-      mesh(mesh),
-      bcs_m(bcs_m),
-      bcs_dm(bcs_dm),
-      bc_c(bc_c)
+      mesh(mesh)
     {
-
       real theta = 0.;
 
 //      // Parse command-line arguments
@@ -721,22 +704,29 @@ public:
       nn = new NodeNormal(mesh);
       cv = new CellVolume(mesh);
 
-      // Create boundary conditions
+#warning "duplicate code"
       thetadrag = new ThetaDrag(mesh);
       thetalift = new ThetaLift(mesh);
       sm = new SlipMarker(mesh);
-      oboundary = new OutflowBoundary;
-      iboundary = new InflowBoundary;
-//      bc_in_m = new DirichletBC(*inflow, mesh, *iboundary);
-//      bc_c = new DirichletBC(*outflow, mesh, *oboundary);
-  //    slipbc_m = new SlipBC(mesh, *sboundary, *nn);
-//      bc_dm = new DirichletBC(*dinflow, mesh, *aboundary);
 
-//      bcs_m.push_back(bc_in_m);
-//      bcs_m.push_back(slipbc_m);
+      // create bcs
+      for (auto bc : dbcs_m)
+      {
+        bcs_m.push_back(new DirichletBC(*bc.second,mesh,*bc.first));
+      }
 
-//      bcs_dm.push_back(bc_dm);
+      for (auto bc : sbcs_m)
+      {
+        bcs_m.push_back(new SlipBC(mesh,*bc,*nn));
+      }
 
+      for (auto bc : dbcs_dm)
+      {
+        bcs_dm.push_back(new DirichletBC(*bc.second,mesh,*bc.first));
+      }
+
+#warning "this is a temporary ugly thing, please improve me!"
+      dbc_c = new DirichletBC(*dbcs_c[0].second,mesh,*dbcs_c[0].first);
 
 #warning "unused variables"
       uint *c_indices = 0;
@@ -899,10 +889,10 @@ public:
 
       // Declare PDE solvers
       pdep_m = new LinearPDE(*ap_m, *Lp_m, mesh, bcs_m);
-      pdep_c = new LinearPDE(*ap_c, *Lp_c, mesh, *bc_c, cg);
+      pdep_c = new LinearPDE(*ap_c, *Lp_c, mesh, dbc_c[0], cg);
 
       pded_m = new LinearPDE(*ad_m, *Ld_m, mesh, bcs_dm);
-      pded_c = new LinearPDE(*ad_c, *Ld_c, mesh, *bc_c);
+      pded_c = new LinearPDE(*ad_c, *Ld_c, mesh, dbc_c[0]);
 
       U = new Function;
       P = new Function;
@@ -1477,13 +1467,8 @@ private:
       ThetaDrag *thetadrag;
       ThetaLift *thetalift;
       SlipMarker *sm;
-      OutflowBoundary *oboundary;
-      InflowBoundary *iboundary;
-      DirichletBC *bc_in_m;
-      DirichletBC* bc_c;
-      SlipBC *slipbc_m;
-      DirichletBC *bc_dm;
 
+      DirichletBC* dbc_c;
       Array<BoundaryCondition*> bcs_m;
       Array<BoundaryCondition*> bcs_dm;
 

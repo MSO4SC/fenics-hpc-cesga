@@ -134,61 +134,66 @@ class SlipBoundary : public SubDomain
   }
 };
 
+// Sub domain for Dirichlet boundary condition
+class InflowBoundary : public SubDomain
+{
+  bool inside(const real* x, bool on_boundary) const
+  {
+    return x[0] <= xmin + bmarg && on_boundary;
+  }
+};
+
+// Sub domain for Dirichlet boundary condition
+class OutflowBoundary : public SubDomain
+{
+  bool inside(const real* x, bool on_boundary) const
+  {
+    return x[0] >= xmax - bmarg && on_boundary;
+  }
+};
+
 int main(int argc, char* argv[])
 {
   // Create mesh
   Mesh mesh("mesh.bin");
-  //Mesh mesh("mesh.xml");
   
-      NodeNormal *nn;
-      nn = new NodeNormal(mesh);
+  // Create boundary conditions
+  InflowBoundary iboundary;
+  Inflow inflow(mesh);
 
-      // Create boundary conditions
-      Inflow *inflow;
-      DualInflow *dinflow;
-      Outflow *outflow;
-      ThetaDrag *thetadrag;
-      ThetaLift *thetalift;
-      SlipMarker *sm;
-      DirichletBoundary *dboundary;
-      OutflowBoundary *oboundary;
-      InflowBoundary *iboundary;
-      SlipBoundary *sboundary;
-      AllBoundary *aboundary;
-      DirichletBC *bc_in_m;
-      DirichletBC *bc_c;
-      SlipBC *slipbc_m;
-      DirichletBC *bc_dm;
+  AllBoundary aboundary;
+  DualInflow dinflow(mesh);
 
-      Array<BoundaryCondition*> bcs_m;
-      Array<BoundaryCondition*> bcs_dm;
+  OutflowBoundary oboundary;
+  Outflow outflow(mesh);
 
-      inflow = new Inflow(mesh);
-      dinflow = new DualInflow(mesh);
-      outflow = new Outflow(mesh);
-      thetadrag = new ThetaDrag(mesh);
-      thetalift = new ThetaLift(mesh);
-      sm = new SlipMarker(mesh);
-      dboundary = new DirichletBoundary;
-      oboundary = new OutflowBoundary;
-      iboundary = new InflowBoundary;
-      sboundary = new SlipBoundary;
-      aboundary = new AllBoundary;
-      bc_in_m = new DirichletBC(*inflow, mesh, *iboundary);
-      bc_c = new DirichletBC(*outflow, mesh, *oboundary);
-      slipbc_m = new SlipBC(mesh, *sboundary, *nn);
-      bc_dm = new DirichletBC(*dinflow, mesh, *aboundary);
+  SlipBoundary sboundary;
 
-      bcs_m.push_back(bc_in_m);
-      bcs_m.push_back(slipbc_m);
+#warning "unused variables"
+  DirichletBoundary dboundary;
 
-      bcs_dm.push_back(bc_dm);
+  ThetaDrag thetadrag(mesh);
+  ThetaLift thetalift(mesh);
+  SlipMarker sm(mesh);
+
+  DirichletBCList dbcs_m;
+  dbcs_m.push_back(std::make_pair(&iboundary,&inflow));
+
+  SlipBCList sbcs_m;
+  sbcs_m.push_back(&sboundary);
+
+  DirichletBCList dbcs_c;
+  dbcs_c.push_back(std::make_pair(&oboundary,&outflow));
+
+  DirichletBCList dbcs_dm;
+  dbcs_dm.push_back(std::make_pair(&aboundary,&dinflow));
 
   NSESolver solver(
       mesh,
-      bcs_m,
-      bcs_dm,
-      bc_c
+      dbcs_m,
+      sbcs_m,
+      dbcs_c,
+      dbcs_dm
       );
   solver.run();
 
