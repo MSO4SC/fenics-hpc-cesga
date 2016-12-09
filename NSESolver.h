@@ -48,76 +48,6 @@ using namespace dolfin;
 typedef std::vector<std::pair<SubDomain*,Function*>> DirichletBCList;
 typedef std::vector<SubDomain*> SlipBCList;
 
-
-real bmarg = 1.0e-5 + DOLFIN_EPS;
-
-std::string simcase = "cube";
-
-real xmin;
-real xmax;
-real ymin;
-real ymax;
-real zmin;
-real zmax;
-
-real robj;
-
-
-real adapt_percent = 5.;
-
-real T;
-
-void ComputeTangentialVectors(Mesh& mesh,  Vector& tau_1, 
-                              Vector& tau_2, Vector& normal,
-                              Form& form, NodeNormal& node_normal)
-{
-  UFC ufc(form.form(), mesh, form.dofMaps());
-  Cell c(mesh, 0);
-  uint local_dim = c.numEntities(0);
-  uint *idx  = new uint[3 * local_dim];
-  uint *id  = new uint[3 * local_dim];
-  real *tau_1_block = new real[3 * local_dim];  
-  real *tau_2_block = new real[3 * local_dim];  
-  real *normal_block = new real[3 * local_dim];
-
-  for (CellIterator cell(mesh); !cell.end(); ++cell)
-  {
-    ufc.update(*cell, mesh.distdata());
-    
-    (form.dofMaps())[1].tabulate_dofs(idx, ufc.cell, cell->index());
-    
-    uint ii = 0;
-    uint jj = 0;    
-    for(uint i = 0; i < 3; i++) 
-    {
-      for(VertexIterator v(*cell); !v.end(); ++v, ii++) 
-      {
-        if (!mesh.distdata().is_ghost(v->index(), 0)) 
-        {
-          tau_1_block[jj] = node_normal.tau_1[i].get(*v);
-          tau_2_block[jj] = node_normal.tau_2[i].get(*v);
-          normal_block[jj] = node_normal.normal[i].get(*v);
-          id[jj++] = idx[ii];
-        }
-      }
-    }
-
-    tau_1.set(tau_1_block, jj, id);
-    tau_2.set(tau_2_block, jj, id);
-    normal.set(normal_block, jj, id);
-  }
-
-  tau_1.apply();
-  tau_2.apply();
-  normal.apply();
-  delete[] tau_1_block;
-  delete[] tau_2_block;
-  delete[] normal_block;
-  delete[] idx;
-  delete[] id;
-
-}
-
 // Comparison operator for index/value pairs
 struct less_pair : public std::binary_function<std::pair<int, real>,
                                                std::pair<int, real>, bool>
@@ -125,516 +55,6 @@ struct less_pair : public std::binary_function<std::pair<int, real>,
   bool operator()(std::pair<int, real> x, std::pair<int, real> y)
   {
     return x.second < y.second;
-  }
-};
-
-
-void merge(real *a,real *b,real *res,int an,int bn)
-{
-  real *ap,*bp,*rp;
-  ap=a;
-  bp=b;
-  rp=res;
-
-  while(ap<a+an && bp<b+bn){ 
-    if(*ap <= *bp){
-      *rp=*ap;
-      ap++;
-      rp++;
-    }
-    else { 
-      *rp=*bp;
-      rp++;
-      bp++;
-    }
-  }
-  if(ap<a+an){
-    do
-      *rp=*ap;
-    while(++rp && ++ap<a+an);
-  }
-  else{
-    do
-      *rp=*bp;
-    while(++rp && ++bp<b+bn);
-  }
-}
-
-void ComputeLargestIndicators_cell(Mesh& mesh, Vector& e_indx, std::vector<int>& cells,
-                                                  real percentage)
-{
-  int N = mesh.numCells();
-  int M = std::min((int)(N), 
-                   (int)((real) 
-                         (dolfin::MPI::numProcesses() > 1 ? 
-                          mesh.distdata().global_numCells() : mesh.numCells()) * percentage * 0.01));
-  
-  if(dolfin::MPI::processNumber() == 0)
-    dolfin_set("output destination","terminal");
-  message("Computing largest indicators");
-  message("percentage: %f", percentage);
-  message("N: %d", N);
-  message("M: %d", M);
-  dolfin_set("output destination","silent");
-
-
-  std::vector<std::pair<int, real> > indicators(N);
-  real eind;
-  for (CellIterator cell(mesh); !cell.end(); ++cell)
-  {
-    int id = (*cell).index();
-    std::pair<int, real> p;
-    p.first = id;
-    uint ci = id;    
-    if(dolfin::MPI::numProcesses() > 1)
-      ci = mesh.distdata().get_cell_global(ci);
-    e_indx.get(&eind, 1, &ci);      
-    p.second = eind;    
-    indicators[id] = p;
-  }
-
-  less_pair comp;
-  std::sort(indicators.begin(), indicators.end(), comp);
-
-
-  real *local_eind = new real[M];
-  for(int i = 0; i < M; i++)
-  {
-    std::pair<int, real> p = indicators[N - 1 - i];
-    local_eind[M - 1 - i] = p.second;
-  }
-
-
-  /*
-   *  FIXME reduce memory usage
-   *  merge only half of the recived data
-   */
-
-  uint M_max, M_tot;
-  MPI_Allreduce(&M, &M_max, 1, MPI_UNSIGNED, MPI_MAX, dolfin::MPI::DOLFIN_COMM);
-  MPI_Allreduce(&M, &M_tot, 1, MPI_UNSIGNED, MPI_SUM, dolfin::MPI::DOLFIN_COMM);
-
-  double *recv_eind = new double[M_max];
-  double *global_eind = new double[M_tot];
-  double *work = new double[M_tot];
-
-  //  std::vector<double> global_eind;
-
-  MPI_Status status;
-  uint src,dest;
-  uint rank =  dolfin::MPI::processNumber();
-  uint size =  dolfin::MPI::numProcesses();
-  uint nm = M;
-  int num_recv;
-  //  global_eind.insert(global_eind.begin(), local_eind, local_eind + M);
-  std::memcpy(global_eind, local_eind, M*sizeof(real));
-
-  for(uint i = 1; i < size; i++) {
-    src =(rank - i + size) % size;
-    dest = (rank + i) % size;
-
-    MPI_Sendrecv(local_eind, M, MPI_DOUBLE, dest, 0, 
-                 recv_eind, M_max, MPI_DOUBLE, src, 0, dolfin::MPI::DOLFIN_COMM, &status);
-    MPI_Get_count(&status, MPI_DOUBLE,&num_recv);
-    //global_eind.insert(global_eind.end(), recv_eind, recv_eind + num_recv);
-    merge(recv_eind, global_eind, work, num_recv, nm);
-    std::memcpy(global_eind, work, M_tot * sizeof(real));
-    nm += num_recv;
-    
-  }
-
-  //  std::sort(global_eind.begin(), global_eind.end());
-  cells.clear();
-  int MM = (int)((real) (dolfin::MPI::numProcesses() > 1 ? 
-                         mesh.distdata().global_numCells() : mesh.numCells()) * percentage * 0.01);
-  int i = 0;
-  for(int j = 0; j < MM; j++) {
-    if( local_eind[M - 1 - i] >= global_eind[M_tot - 1 - j] ) {
-      std::pair<int, real> p = indicators[N - 1 - i];
-      cells.push_back(p.first);
-      if( (i++) >= std::min(N, MM)) break;    
-    }
-  }
-
-  dolfin_set("output destination", "terminal");
-  message("%d marked cells on cpu %d", cells.size(), dolfin::MPI::processNumber());
-  dolfin_set("output destination", "silent");
-
-  
-  delete[] local_eind;
-  delete[] recv_eind;
-  delete[] global_eind;
-  delete[] work;
-}
-
-
-void ComputeLargestIndicators_eind(Mesh& mesh, Vector& e_indx, std::vector<int>& cells,
-                                                  real percentage)
-{
-  int N = mesh.numCells();
-  real eind, sum_e, sum_e_local, max_e, max_e_local, min_e, min_e_local;
-  sum_e = sum_e_local = max_e_local = 0.0;
-  min_e_local = 1e6;
-  
-  std::vector<std::pair<int, real> > indicators(N);
-
-  for (CellIterator cell(mesh); !cell.end(); ++cell)
-  {
-    int id = (*cell).index();
-    std::pair<int, real> p;
-    p.first = id;
-    uint ci = id;    
-    if(dolfin::MPI::numProcesses() > 1)
-      ci = mesh.distdata().get_cell_global(ci);
-    e_indx.get(&eind, 1, &ci);      
-    // Take absolute value
-    eind = abs(eind);
-    p.second = eind;    
-    indicators[id] = p;
-    max_e_local = std::max(max_e_local, eind);
-    min_e_local = std::min(min_e_local, eind);
-    sum_e_local += p.second;
-  }
-
-  less_pair comp;
-  std::sort(indicators.begin(), indicators.end(), comp);
-
-  MPI_Allreduce(&sum_e_local, &sum_e, 1, MPI_DOUBLE,
-                MPI_SUM, dolfin::MPI::DOLFIN_COMM);
-
-  MPI_Allreduce(&max_e_local, &max_e, 1, MPI_DOUBLE, 
-                MPI_MAX, dolfin::MPI::DOLFIN_COMM);
-
-  MPI_Allreduce(&min_e_local, &min_e, 1, MPI_DOUBLE, 
-                MPI_MIN, dolfin::MPI::DOLFIN_COMM);
-
-  real threshold = (percentage * 0.01 * sum_e);
-  real cutoff = (max_e + min_e) / 2.0;
-  real acc_local, acc;
-  acc_local = acc = 0.0;
-
-  int iter = 0;
-  while ( (fabs(acc - threshold) / threshold )  > 1e-2  && (iter++) < 10)
-  {
-    cutoff = (max_e + min_e) / 2.0;
-    acc = acc_local = 0.0;
-    cells.clear();
-
-    for (int i = 0; i < N; i++) 
-    {
-      std::pair<int, real> p = indicators[N - 1 - i];
-
-      cells.push_back(p.first);
-      acc_local += p.second;
-
-      if ( p.second < cutoff )
-        break;     
-    }
-
-    MPI_Allreduce(&acc_local, &acc, 1, MPI_DOUBLE, 
-                  MPI_SUM, dolfin::MPI::DOLFIN_COMM);
-        
-    ( acc > threshold ? (min_e = cutoff ) : (max_e = cutoff));    
-  }
-}
-
-void ComputeRefinementMarkers(Mesh& mesh, real percentage, Vector& e_indx,
-                              MeshFunction<bool>& cell_refinement_marker)
-{
-
-  real error = 0.0;
-  //ComputeError(error);
-
-  //message("err: %g", error);
-  
-  std::vector<int> cells;
-  ComputeLargestIndicators_cell(mesh, e_indx, cells, percentage);
-    
-  cell_refinement_marker.init(mesh, mesh.topology().dim());
-  cell_refinement_marker = false;
-    
-  int M = cells.size();
-       
-  for(int i = 0; i < M; i++)
-  {
-    cell_refinement_marker.set(cells[i], true);
-  }
-
-}
-//-----------------------------------------------------------------------------
-
-// Utility function for mesh rotation
-void computeX(Function& XX, Form* aM, Mesh& mesh)
-{
-  // Copy mesh coordinates into X array/function                                                                                                                                                            
-  int d = mesh.topology().dim();
-  UFC ufc(aM->form(), mesh, aM->dofMaps());
-  Cell c(mesh, 0);
-  uint local_dim = c.numEntities(0);
-  uint *idx  = new uint[d * local_dim];
-  uint *id  = new uint[d * local_dim];
-  real *XX_block = new real[d * local_dim];
-
-  for (CellIterator cell(mesh); !cell.end(); ++cell)
-  {
-    ufc.update(*cell, mesh.distdata());
-    (aM->dofMaps())[0].tabulate_dofs(idx, ufc.cell, cell->index());
-
-    uint ii = 0;
-    uint jj = 0;
-    for(uint i = 0; i < d; i++)
-    {
-      for(VertexIterator v(*cell); !v.end(); ++v, ii++)
-      {
-        if (!mesh.distdata().is_ghost(v->index(), 0))
-        {
-          XX_block[jj] = v->x()[i];
-          id[jj++] = idx[ii];
-        }
-      }
-    }
-    XX.vector().set(XX_block, jj, id);
-  }
-  XX.vector().apply();
-  XX.sync_ghosts();
-  delete[] XX_block;
-  delete[] idx;
-  delete[] id;
-}
-
-// Utility function for mesh rotation
-void Rotate(Function& XX, Form* aM, Mesh& mesh, double theta)
-{
-
-
-  MeshGeometry& geometry = mesh.geometry();
-
-  uint d = mesh.topology().dim();
-  uint N = mesh.numVertices();
-  if(dolfin::MPI::numProcesses() > 1)
-    N = mesh.distdata().global_numVertices();
-  UFC ufc(aM->form(), mesh, aM->dofMaps());
-  Cell c(mesh, 0);
-  uint local_dim = c.numEntities(0);
-  uint *idx  = new uint[d * local_dim];
-  uint *id  = new uint[d * local_dim];
-  real *XX_block = new real[d * local_dim];
-
-  // Update the mesh                                                                                                                                                                                        
-  for (CellIterator cell(mesh); !cell.end(); ++cell)
-  {
-    ufc.update(*cell, mesh.distdata());
-    (aM->dofMaps())[0].tabulate_dofs(idx, ufc.cell, cell->index());
-
-    XX.vector().get(XX_block, d * local_dim, idx);
-
-    std::vector<double> xx, yy, zz;
-    uint jj = 0;
-    for(VertexIterator v(*cell); !v.end(); ++v)
-    {
-      for(unsigned int i = 0; i < d; i++)
-      {
-        if (i==0)
-          xx.push_back(XX_block[i * local_dim + jj]);
-        if (i==1)
-          yy.push_back(XX_block[i * local_dim + jj]);
-      }
-      jj++;
-    }
-    uint j = 0;
-    for(VertexIterator v(*cell); !v.end(); ++v)
-    {
-      Vertex& vertex = *v;
-
-      real theta2;
-
-      Point cp(0.35, -0.06, vertex.point()[2]);
-      Point pdiff = vertex.point() - cp;
-
-      real r = pdiff.norm();
-      if(r < 0.5)
-        theta2 = (0.0 - theta)*2*DOLFIN_PI/360.0;
-      else if(r >= 0.5 && r < 1.0)
-        theta2 = (0.0 - theta)*2*DOLFIN_PI/360.0*(1.0 - r) / (1.0 - 0.5);
-      else
-        theta2 = 0.0*2*DOLFIN_PI/360.0;
-
-      for(unsigned int i = 0; i < d; i++)
-      {
-        if (i==0)
-          XX_block[i * local_dim + j] = xx[j]*cos(theta2) - yy[j]*sin(theta2);
-        if (i==1)
-          XX_block[i * local_dim + j] = xx[j]*sin(theta2) + yy[j]*cos(theta2);
-
-        geometry.x(vertex.index(), i) = XX_block[i * local_dim + j];
-      }
-      j++;
-    }
-  }
-
-  delete[] XX_block;
-  delete[] idx;
-  delete[] id;
-
-  MPI_Barrier(dolfin::MPI::DOLFIN_COMM);
-}
-
-// Marker function for weak boundary condition
-class SlipMarker : public Function
-{
-public:
-
-  SlipMarker(Mesh& mesh) : Function(mesh) {}
-
-  void eval(real* values, const real* x) const
-  {
-    values[0] = 0.0;
-
-    if(x[0] >= xmin + bmarg && x[0] <= xmax - bmarg)
-      values[0] = 0.0;
-  }
-};
-
-// Dual volume source for momentum
-class PsiMomentum : public Function
-{
-public:
-
-  PsiMomentum(Mesh& mesh) : Function(mesh) {}
-
-  void eval(real* values, const real* x) const
-  {
-    values[0] = 0.0;
-    values[1] = 0.0;
-    values[2] = 0.0;
-  }
-
-  uint rank() const
-  {
-    return 1;
-  }
-
-  uint dim(uint i) const
-  {
-    return 3;
-  }
-};
-
-// Dual volume source for continuity
-class PsiContinuity : public Function
-{
-public:
-
-  PsiContinuity(Mesh& mesh) : Function(mesh) {}
-
-  void eval(real* values, const real* x) const
-  {
-    values[0] = 0.0;
-  }
-
-  uint rank() const
-  {
-    return 0;
-  }
-
-  uint dim(uint i) const
-  {
-    return 0;
-  }
-};
-
-// Dual boundary source for momentum
-class BPsiMomentum : public Function
-{
-public:
-
-  BPsiMomentum(Mesh& mesh) : Function(mesh) {}
-
-  void eval(real* values, const real* x) const
-  {
-    values[0] = 0.0;
-    values[1] = 0.0;
-    values[2] = 0.0;
-    if(x[0] >= xmin + bmarg && x[0] <= xmax - bmarg &&
-       x[1] >= ymin + bmarg && x[1] <= ymax - bmarg &&
-       x[2] >= zmin + bmarg && x[2] <= zmax - bmarg)
-    {
-      values[0] = 0.0;
-    }
-  }
-
-  uint rank() const
-  {
-    return 1;
-  }
-
-  uint dim(uint i) const
-  {
-    return 3;
-  }
-};
-
-// Marker and orientation function for drag computation
-class ThetaDrag : public Function
-{
-public:
-
-  ThetaDrag(Mesh& mesh) : Function(mesh) {}
-
-  void eval(real* values, const real* x) const
-  {
-    values[0] = 0.0;
-    values[1] = 0.0;
-    values[2] = 0.0;
-
-    if(fabs(x[0] - 0.0) < robj &&
-       fabs(x[1] - 0.0) < robj &&
-       fabs(x[2] - 0.0) < robj)
-    {
-      values[0] = 1.0;
-    }
-  }
-
-  uint rank() const
-  {
-    return 1;
-  }
-
-  uint dim(uint i) const
-  {
-    return 3;
-  }
-};
-
-// Marker and orientation function for lift computation
-class ThetaLift : public Function
-{
-public:
-
-  ThetaLift(Mesh& mesh) : Function(mesh) {}
-
-  void eval(real* values, const real* x) const
-  {
-    values[0] = 0.0;
-    values[1] = 0.0;
-    values[2] = 0.0;
-
-    if(fabs(x[0] - 0.0) < robj &&
-       fabs(x[1] - 0.0) < robj &&
-       fabs(x[2] - 0.0) < robj)
-    {
-      values[1] = 1.0;
-    }
-  }
-
-  uint rank() const
-  {
-    return 1;
-  }
-
-  uint dim(uint i) const
-  {
-    return 3;
   }
 };
 
@@ -647,9 +67,21 @@ public:
         DirichletBCList dbcs_m,
         SlipBCList sbcs_m,
         DirichletBCList dbcs_c,
-        DirichletBCList dbcs_dm
+        DirichletBCList dbcs_dm,
+        Function* thetadrag,
+        Function* thetalift,
+        Function* sm,
+        Function* psim,
+        Function* psic,
+        Function* bpsim
         ) :
-      mesh(mesh)
+      mesh(mesh),
+      thetadrag(thetadrag),
+      thetalift(thetalift),
+      sm(sm),
+      psim(psim),
+      psic(psic),
+      bpsim(bpsim)
     {
       real theta = 0.;
 
@@ -664,18 +96,6 @@ public:
 //      {
 //        theta = atof(argv[2]);
 //      }
-
-      xmin = -10.0;
-      xmax = 30.0;
-      ymin = -10.0;
-      ymax = 10.0;
-      zmin = -10.0;
-      zmax = 10.0;
-      robj = 1. - bmarg;
-      T = 5.0;
-
-      primal_T = T;
-      dual_T = 1. * T / 2;
 
       dolfin_set("output destination","silent");
       if(dolfin::MPI::processNumber() == 0)
@@ -704,11 +124,6 @@ public:
       nn = new NodeNormal(mesh);
       cv = new CellVolume(mesh);
 
-#warning "duplicate code"
-      thetadrag = new ThetaDrag(mesh);
-      thetalift = new ThetaLift(mesh);
-      sm = new SlipMarker(mesh);
-
       // create bcs
       for (auto bc : dbcs_m)
       {
@@ -735,10 +150,6 @@ public:
       hmin = h->min();
       cout << "hmin: " << hmin << endl;
       
-      psim = new PsiMomentum(mesh);
-      psic = new PsiContinuity(mesh);
-      bpsim = new BPsiMomentum(mesh);
-
       k = 0.1*hmin;
       nu = 0.0;
       c1 = 0.1;
@@ -797,19 +208,26 @@ public:
 
       ei = new Vector;
 
-      ap_m = new NSEMomentum3DBilinearForm(*u, *p, *nuf, *h, *kf, *c1f, *u0, *normal, *sm);
-      Lp_m = new NSEMomentum3DLinearForm(*u, *p, *nuf, *h, *kf, *c1f, *u0, *normal, *sm);
+      ap_m = new NSEMomentum3DBilinearForm(*u, *p, *nuf, *h, *kf, *c1f, *u0,
+          *normal, *sm);
+      Lp_m = new NSEMomentum3DLinearForm(*u, *p, *nuf, *h, *kf, *c1f, *u0,
+          *normal, *sm);
 
       ap_c = new NSEContinuity3DBilinearForm(*h, *kf, *c1f, *hminf);
-      Lp_c = new NSEContinuity3DLinearForm(*u, *p, *h, *kf, *c1f, *u0, *p0, *hminf);
+      Lp_c = new NSEContinuity3DLinearForm(*u, *p, *h, *kf, *c1f, *u0, *p0,
+          *hminf);
 
       //NSEDualMomentum3DBilinearForm ad_m(*u, *up, *nuf, *h, *kf, *c1f, c2f, *u0);
-      ad_m = new NSEDualMomentum3DBilinearForm(*u, *up, *p, *nuf, *h, *kf, *c1f, *c2f, *u0);
-      Ld_m = new NSEDualMomentum3DLinearForm(*u, *up, *p, *nuf, *h, *kf, *c1f, *c2f, *u0, *psim, *bpsim);
+      ad_m = new NSEDualMomentum3DBilinearForm(*u, *up, *p, *nuf, *h, *kf,
+          *c1f, *c2f, *u0);
+      Ld_m = new NSEDualMomentum3DLinearForm(*u, *up, *p, *nuf, *h, *kf,
+          *c1f, *c2f, *u0, *psim, *bpsim);
 
-      ad_c = new NSEDualContinuity3DBilinearForm(*u, *h, *kf, *c1f, *c2f, *hminf);
+      ad_c = new NSEDualContinuity3DBilinearForm(*u, *h, *kf, *c1f, *c2f,
+          *hminf);
       //NSEDualContinuity3DLinearForm Ld_c(*u, *up, *p, *h, *kf, *c1f, *u0, *p0, *hminf, psic);
-      Ld_c = new NSEDualContinuity3DLinearForm(*u, *p, *h, *kf, *c1f, *c2f, *u0, *p0, *hminf, *psic);
+      Ld_c = new NSEDualContinuity3DLinearForm(*u, *p, *h, *kf, *c1f, *c2f,
+          *u0, *p0, *hminf, *psic);
 
       Lrep_m = new NSEErrRepMomentum3DLinearForm(*up, *pp, *nuf, *dtup, *u);
       Lrep_c = new NSEErrRepContinuity3DLinearForm(*up, *p);
@@ -881,7 +299,7 @@ public:
       ei_m->vector() = 0.0;
       ei_c->vector() = 0.0;
 
-      ComputeTangentialVectors(mesh, (Vector&)tau_1->vector(),
+      ComputeTangentialVectors((Vector&)tau_1->vector(),
           (Vector&)tau_2->vector(),
           (Vector&)normal->vector(), *ap_m, *nn);
 
@@ -898,7 +316,7 @@ public:
       P = new Function;
 
       computeX(X, ap_m, mesh);
-      Rotate(X, ap_m, mesh, theta);
+      rotate(X, ap_m, mesh, theta);
 
       file_u = new File("velocity.bin");
       file_p = new File("pressure.bin");
@@ -926,6 +344,9 @@ public:
       Rcp = new SpaceTimeFunction(mesh, *Rc);
       Rcp->setBasename("Rc_v");
     }
+
+    virtual ~NSESolver ();
+
     void run()
     {
       for(int solver_idx = 0; solver_idx < 2; solver_idx++)
@@ -1060,7 +481,8 @@ public:
               " timer: " << time() - timer << endl;
             cout << "iteration: " << i << endl;
             iteration0 = i;
-            if(rd_u_norm / u->vector().norm(l2) <= rdtol && rd_p_norm / p->vector().norm(l2) <= rdtol)
+            if(rd_u_norm / u->vector().norm(l2) <= rdtol &&
+               rd_p_norm / p->vector().norm(l2) <= rdtol)
             {
               cout << "Step info: " <<
                 "Unorm: " << U->vector().norm(linf) <<
@@ -1084,7 +506,8 @@ public:
             ei_m->vector().axpy(k, eij_m->vector());
             assembler->assemble(eij_c->vector(), *Lrep_c);
             ei_c->vector().axpy(k, eij_c->vector());
-            cout << "errest done: " << ei_m->vector().norm(linf) << " " << ei_c->vector().norm(linf) << endl;
+            cout << "errest done: " << ei_m->vector().norm(linf) <<
+              " " << ei_c->vector().norm(linf) << endl;
 
             assembler->assemble(wm->vector(), *Lwm);
             real H1dualm = assembler->assemble(*Mwm);
@@ -1152,9 +575,10 @@ public:
             if(t >= dual_T)
             {
               // Output drag and lift, together with other diagnostics
-
               tot_drag = (drag + n_mean*tot_drag) / (n_mean + 1);
-              cout << "step t: " << t << " drag: " << drag << " lift: " << lift << endl;
+              cout << "step t: " << t <<
+                " drag: " << drag <<
+                " lift: " << lift << endl;
               real H1primal = assembler->assemble(*MH1);
               tot_H1primal = (H1primal + n_mean*tot_H1primal) / (n_mean + 1);
               real H1primal2 = assembler->assemble(*MH12);
@@ -1178,7 +602,9 @@ public:
               *file_p << *p;
 
               // Save primal velocity
-              up->vector() = u->vector(); up->vector() += u0->vector(); up->vector() /= 2.;
+              up->vector() = u->vector(); 
+              up->vector() += u0->vector(); 
+              up->vector() /= 2.;
               File ubinfile(Up->getNewFilename(t));
               ubinfile << up->vector();
 
@@ -1222,6 +648,7 @@ public:
 
         if(solver == "primal")
         {
+#warning "poorly named variable"
           cout << "mean drag: " << tot_drag << endl;
           cout << "total H1primal: " << sqrt(tot_H1primal) << endl;
           cout << "total H1primal2: " << sqrt(tot_H1primal2) << endl;
@@ -1245,7 +672,8 @@ public:
 
           
           eif->vector() = 0.0;
-          eif->vector() += ei_m->vector(); eif->vector() += ei_c->vector();
+          eif->vector() += ei_m->vector();
+          eif->vector() += ei_c->vector();
           //eif->vector() /= dual_T;
           
           NSEErrRepMomentum3DFunctional M_ei(*eif, *cv);
@@ -1304,9 +732,11 @@ public:
             dolfin_set("output destination","terminal");
           message("Adaptive refinement");
           message("cells before: %d",
-                  (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
+                  (dolfin::MPI::numProcesses() > 1 ?
+                   mesh.distdata().global_numCells() : mesh.numCells()));
           message("vertices before: %d",
-                  (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
+                  (dolfin::MPI::numProcesses() > 1 ?
+                   mesh.distdata().global_numVertices() : mesh.numVertices()));
           dolfin_set("output destination","silent");
 
           RivaraRefinement::refine(mesh, cell_marker);
@@ -1314,9 +744,11 @@ public:
           if(MPI::processNumber() == 0)
             dolfin_set("output destination","terminal");
           message("cells after: %d",
-                  (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numCells() : mesh.numCells()));
+                  (dolfin::MPI::numProcesses() > 1 ?
+                   mesh.distdata().global_numCells() : mesh.numCells()));
           message("vertices after: %d",
-                  (dolfin::MPI::numProcesses() > 1 ? mesh.distdata().global_numVertices() : mesh.numVertices()));
+                  (dolfin::MPI::numProcesses() > 1 ?
+                   mesh.distdata().global_numVertices() : mesh.numVertices()));
           dolfin_set("output destination","silent");
           
           File file_rm("rmesh.bin");
@@ -1324,157 +756,688 @@ public:
         }
       }
     }
-    virtual ~NSESolver () {};
+
+    real getT() const {return T;}
+    void setT(const real _T)
+    {
+        T = _T;
+        primal_T = T;
+        dual_T = 1. * T / 2;
+    }
+
 
 private:
+    void ComputeTangentialVectors(Vector& tau_1,
+            Vector& tau_2, Vector& normal, Form& form, NodeNormal& node_normal);
+    void merge(real *a,real *b,real *res,int an,int bn);
+    void ComputeLargestIndicators_cell(Mesh& mesh, Vector& e_indx,
+            std::vector<int>& cells, real percentage);
+    void ComputeRefinementMarkers(Mesh& mesh, real percentage,
+            Vector& e_indx, MeshFunction<bool>& cell_refinement_marker);
+    void computeX(Function& XX, Form* aM, Mesh& mesh);
+    void rotate(Function& XX, Form* aM, Mesh& mesh, double theta);
+
+
     Mesh& mesh;
 
-      std::string solver = "primal";
+    std::string solver = "primal";
 
-      bool coeffchanged = true;
-      real int_errest_gstcs = 0;
+    bool coeffchanged = true;
+    real int_errest_gstcs = 0;
 
-      real k;
-      real nu;
-      real c1;
-      real c2;
-      real c3;
+    real k;
+    real nu;
+    real c1;
+    real c2;
+    real c3;
 
-      real rdtol = 5e-2;
-      int maxit = 10;
+    real rdtol = 5e-2;
+    int maxit = 10;
 
-      // Declare all needed functions
-      Function* u;
-      Function* u0;
-      Function* p;
-      Function* p0;
-      Function* nuf;
-      Function* kf;
-      Function* c1f;
-      Function* c2f;
-      Function* hminf;
+    // Declare all needed functions
+    Function* u;
+    Function* u0;
+    Function* p;
+    Function* p0;
+    Function* nuf;
+    Function* kf;
+    Function* c1f;
+    Function* c2f;
+    Function* hminf;
 
-      Function* up;
-      Function* pp;
-      Function* up0;
-      Function* dtu;
-      Function* dtup;
+    Function* up;
+    Function* pp;
+    Function* up0;
+    Function* dtu;
+    Function* dtup;
 
-      Function *Rm, *Rmtot;
-      Function *Rc, *Rctot;
-      Function *wm, *wmtot;
-      Function *wc, *wctot;
+    Function *Rm, *Rmtot;
+    Function *Rc, *Rctot;
+    Function *wm, *wmtot;
+    Function *wc, *wctot;  
 
-      // Declare primal and dual forms
-      Form *a_m, *L_m, *a_c, *L_c;
+    // Declare primal and dual forms
+    Form *a_m, *L_m, *a_c, *L_c;
 
-      NSEMomentum3DBilinearForm* ap_m;
-      NSEMomentum3DLinearForm* Lp_m;
+    NSEMomentum3DBilinearForm* ap_m;
+    NSEMomentum3DLinearForm* Lp_m;
 
-      NSEContinuity3DBilinearForm* ap_c;
-      NSEContinuity3DLinearForm* Lp_c;
+    NSEContinuity3DBilinearForm* ap_c;
+    NSEContinuity3DLinearForm* Lp_c;
 
-      NSEDualMomentum3DBilinearForm* ad_m;
-      NSEDualMomentum3DLinearForm* Ld_m;
+    NSEDualMomentum3DBilinearForm* ad_m;
+    NSEDualMomentum3DLinearForm* Ld_m;
 
-      NSEDualContinuity3DBilinearForm* ad_c;
-      NSEDualContinuity3DLinearForm* Ld_c;
+    NSEDualContinuity3DBilinearForm* ad_c;
+    NSEDualContinuity3DLinearForm* Ld_c;
 
 
-      // Declare PDE solvers
-      LinearPDE *pde_m, *pde_c;
+    // Declare PDE solvers
+    LinearPDE *pde_m, *pde_c;
 
-      LinearPDE* pdep_m;
-      LinearPDE* pdep_c;
+    LinearPDE* pdep_m;
+    LinearPDE* pdep_c;
 
-      LinearPDE* pded_m;
-      LinearPDE* pded_c;
+    LinearPDE* pded_m;
+    LinearPDE* pded_c;
 
-      real T;
-      real primal_T;
-      real dual_T;
+    real T = 0;
+    real primal_T = 0;
+    real dual_T = 0;
 
-      real hmin;
+    real hmin;
 
-      SpaceTimeFunction* Up = nullptr;
-      SpaceTimeFunction* dtUp = nullptr;
-      SpaceTimeFunction* Pp = nullptr;
-      SpaceTimeFunction* Rmp = nullptr;
-      SpaceTimeFunction* Rcp = nullptr;
+    SpaceTimeFunction* Up = nullptr;
+    SpaceTimeFunction* dtUp = nullptr;
+    SpaceTimeFunction* Pp = nullptr;
+    SpaceTimeFunction* Rmp = nullptr;
+    SpaceTimeFunction* Rcp = nullptr;
 
-      int iteration0 = 0;
-      int stabcounter = 0;
+    int iteration0 = 0;
+    int stabcounter = 0;
 
-      int no_samples = 200;
+    int no_samples = 200;
 
-      Function* U;
-      Function* P;
+    Function* U;
+    Function* P;
 
-      Function* rd_u;
-      Function* rd_p;
+    Function* rd_u;
+    Function* rd_p;
 
-      Assembler* assembler;
+    Assembler* assembler;
 
-      Function *ei_m;
-      Function *ei_c;
-      Function *eij_m;
-      Function *eij_c;
-      Function *eif;
+    Function *ei_m;
+    Function *ei_c;
+    Function *eij_m;
+    Function *eij_c;
+    Function *eif;
 
-      NSEErrRepMomentum3DLinearForm *Lrep_m;
-      NSEErrRepContinuity3DLinearForm *Lrep_c;
+    NSEErrRepMomentum3DLinearForm *Lrep_m;
+    NSEErrRepContinuity3DLinearForm *Lrep_c;
 
-      Drag3DFunctional *Md;
-      Drag3DFunctional *Ml;
+    Drag3DFunctional *Md;
+    Drag3DFunctional *Ml;
 
-      NSEH1Functional *MH1;
-      NSEH12Functional *MH12;
-      NSEErrEstFunctional *MHerrest;
-      NSEErrEstGlobalFunctional *MHerrestg;
+    NSEH1Functional *MH1;
+    NSEH12Functional *MH12;
+    NSEErrEstFunctional *MHerrest;
+    NSEErrEstGlobalFunctional *MHerrestg;
 
-      NSEMomentumResidual3DLinearForm *LRm;
-      NSEMomentumResidual3DFunctional *MRm;
-      NSEContinuityResidual3DLinearForm *LRc;
-      NSEContinuityResidual3DFunctional *MRc;
-      NSEMomentumResidualGlobal3DFunctional *MRgm;
-      NSEContinuityResidualGlobal3DFunctional *MRgc;
+    NSEMomentumResidual3DLinearForm *LRm;
+    NSEMomentumResidual3DFunctional *MRm;
+    NSEContinuityResidual3DLinearForm *LRc;
+    NSEContinuityResidual3DFunctional *MRc;
+    NSEMomentumResidualGlobal3DFunctional *MRgm;
+    NSEContinuityResidualGlobal3DFunctional *MRgc;
 
-      NSEH1Momentum3DLinearForm *Lwm;
-      NSEH1Momentum3DFunctional *Mwm;
-      NSEH1Continuity3DLinearForm *Lwc;
-      NSEH1Continuity3DFunctional *Mwc;
+    NSEH1Momentum3DLinearForm *Lwm;
+    NSEH1Momentum3DFunctional *Mwm;
+    NSEH1Continuity3DLinearForm *Lwc;
+    NSEH1Continuity3DFunctional *Mwc;
 
-      NSEH1MomentumGlobal3DFunctional *Mgwm;
-      NSEH1ContinuityGlobal3DFunctional *Mgwc;
+    NSEH1MomentumGlobal3DFunctional *Mgwm;
+    NSEH1ContinuityGlobal3DFunctional *Mgwc;
 
-      File *file_u;
-      File *file_p;
-      File *file_du;
-      File *file_dp;
-      File *file_m;
+    File *file_u;
+    File *file_p;
+    File *file_du;
+    File *file_dp;
+    File *file_m;
 
-      MeshSize *h;
-      FacetNormal *n;
-      NodeNormal *nn;
-      CellVolume* cv;
-      Vector* ei;
+    MeshSize *h;
+    FacetNormal *n;
+    NodeNormal *nn;
+    CellVolume* cv;
+    Vector* ei;
 
-      Function *tau_1;
-      Function *tau_2;
-      Function *normal;
+    Function *tau_1;
+    Function *tau_2;
+    Function *normal;
 
-      // Create boundary conditions
-      ThetaDrag *thetadrag;
-      ThetaLift *thetalift;
-      SlipMarker *sm;
+    // Create boundary conditions
+    Function *thetadrag;
+    Function *thetalift;
+    Function *sm;
 
-      DirichletBC* dbc_c;
-      Array<BoundaryCondition*> bcs_m;
-      Array<BoundaryCondition*> bcs_dm;
+    DirichletBC* dbc_c;
+    Array<BoundaryCondition*> bcs_m;
+    Array<BoundaryCondition*> bcs_dm;
 
-      PsiMomentum *psim;
-      PsiContinuity *psic;
-      BPsiMomentum *bpsim;
+    Function *psim;
+    Function *psic;
+    Function *bpsim;
+
+    real adapt_percent = 5.;
 };
+
+void NSESolver::ComputeTangentialVectors(Vector& tau_1, 
+                              Vector& tau_2, Vector& normal,
+                              Form& form, NodeNormal& node_normal)
+{
+  UFC ufc(form.form(), mesh, form.dofMaps());
+  Cell c(mesh, 0);
+  uint local_dim = c.numEntities(0);
+  uint *idx  = new uint[3 * local_dim];
+  uint *id  = new uint[3 * local_dim];
+  real *tau_1_block = new real[3 * local_dim];  
+  real *tau_2_block = new real[3 * local_dim];  
+  real *normal_block = new real[3 * local_dim];
+
+  for (CellIterator cell(mesh); !cell.end(); ++cell)
+  {
+    ufc.update(*cell, mesh.distdata());
+    
+    (form.dofMaps())[1].tabulate_dofs(idx, ufc.cell, cell->index());
+    
+    uint ii = 0;
+    uint jj = 0;    
+    for(uint i = 0; i < 3; i++) 
+    {
+      for(VertexIterator v(*cell); !v.end(); ++v, ii++) 
+      {
+        if (!mesh.distdata().is_ghost(v->index(), 0)) 
+        {
+          tau_1_block[jj] = node_normal.tau_1[i].get(*v);
+          tau_2_block[jj] = node_normal.tau_2[i].get(*v);
+          normal_block[jj] = node_normal.normal[i].get(*v);
+          id[jj++] = idx[ii];
+        }
+      }
+    }
+
+    tau_1.set(tau_1_block, jj, id);
+    tau_2.set(tau_2_block, jj, id);
+    normal.set(normal_block, jj, id);
+  }
+
+  tau_1.apply();
+  tau_2.apply();
+  normal.apply();
+  delete[] tau_1_block;
+  delete[] tau_2_block;
+  delete[] normal_block;
+  delete[] idx;
+  delete[] id;
+}
+
+void NSESolver::merge(real *a,real *b,real *res,int an,int bn)
+{
+  real *ap,*bp,*rp;
+  ap=a;
+  bp=b;
+  rp=res;
+
+  while(ap<a+an && bp<b+bn){ 
+    if(*ap <= *bp){
+      *rp=*ap;
+      ap++;
+      rp++;
+    }
+    else { 
+      *rp=*bp;
+      rp++;
+      bp++;
+    }
+  }
+  if(ap<a+an){
+    do
+      *rp=*ap;
+    while(++rp && ++ap<a+an);
+  }
+  else{
+    do
+      *rp=*bp;
+    while(++rp && ++bp<b+bn);
+  }
+}
+
+void NSESolver::ComputeLargestIndicators_cell(Mesh& mesh, Vector& e_indx,
+        std::vector<int>& cells, real percentage)
+{
+  int N = mesh.numCells();
+  int M = std::min((int)(N), 
+                   (int)((real) 
+                         (dolfin::MPI::numProcesses() > 1 ? 
+                          mesh.distdata().global_numCells() : mesh.numCells()) * percentage * 0.01));
+  
+  if(dolfin::MPI::processNumber() == 0)
+    dolfin_set("output destination","terminal");
+  message("Computing largest indicators");
+  message("percentage: %f", percentage);
+  message("N: %d", N);
+  message("M: %d", M);
+  dolfin_set("output destination","silent");
+
+
+  std::vector<std::pair<int, real> > indicators(N);
+  real eind;
+  for (CellIterator cell(mesh); !cell.end(); ++cell)
+  {
+    int id = (*cell).index();
+    std::pair<int, real> p;
+    p.first = id;
+    uint ci = id;    
+    if(dolfin::MPI::numProcesses() > 1)
+      ci = mesh.distdata().get_cell_global(ci);
+    e_indx.get(&eind, 1, &ci);      
+    p.second = eind;    
+    indicators[id] = p;
+  }
+
+  less_pair comp;
+  std::sort(indicators.begin(), indicators.end(), comp);
+
+
+  real *local_eind = new real[M];
+  for(int i = 0; i < M; i++)
+  {
+    std::pair<int, real> p = indicators[N - 1 - i];
+    local_eind[M - 1 - i] = p.second;
+  }
+
+
+  /*
+   *  FIXME reduce memory usage
+   *  merge only half of the recived data
+   */
+
+  uint M_max, M_tot;
+  MPI_Allreduce(&M, &M_max, 1, MPI_UNSIGNED, MPI_MAX, dolfin::MPI::DOLFIN_COMM);
+  MPI_Allreduce(&M, &M_tot, 1, MPI_UNSIGNED, MPI_SUM, dolfin::MPI::DOLFIN_COMM);
+
+  double *recv_eind = new double[M_max];
+  double *global_eind = new double[M_tot];
+  double *work = new double[M_tot];
+
+  //  std::vector<double> global_eind;
+
+  MPI_Status status;
+  uint src,dest;
+  uint rank =  dolfin::MPI::processNumber();
+  uint size =  dolfin::MPI::numProcesses();
+  uint nm = M;
+  int num_recv;
+  //  global_eind.insert(global_eind.begin(), local_eind, local_eind + M);
+  std::memcpy(global_eind, local_eind, M*sizeof(real));
+
+  for(uint i = 1; i < size; i++) {
+    src =(rank - i + size) % size;
+    dest = (rank + i) % size;
+
+    MPI_Sendrecv(local_eind, M, MPI_DOUBLE, dest, 0, 
+                 recv_eind, M_max, MPI_DOUBLE, src, 0, dolfin::MPI::DOLFIN_COMM, &status);
+    MPI_Get_count(&status, MPI_DOUBLE,&num_recv);
+    //global_eind.insert(global_eind.end(), recv_eind, recv_eind + num_recv);
+    merge(recv_eind, global_eind, work, num_recv, nm);
+    std::memcpy(global_eind, work, M_tot * sizeof(real));
+    nm += num_recv;
+    
+  }
+
+  //  std::sort(global_eind.begin(), global_eind.end());
+  cells.clear();
+  int MM = (int)((real) (dolfin::MPI::numProcesses() > 1 ? 
+                         mesh.distdata().global_numCells() : mesh.numCells()) * percentage * 0.01);
+  int i = 0;
+  for(int j = 0; j < MM; j++) {
+    if( local_eind[M - 1 - i] >= global_eind[M_tot - 1 - j] ) {
+      std::pair<int, real> p = indicators[N - 1 - i];
+      cells.push_back(p.first);
+      if( (i++) >= std::min(N, MM)) break;    
+    }
+  }
+
+  dolfin_set("output destination", "terminal");
+  message("%d marked cells on cpu %d", cells.size(), dolfin::MPI::processNumber());
+  dolfin_set("output destination", "silent");
+
+  
+  delete[] local_eind;
+  delete[] recv_eind;
+  delete[] global_eind;
+  delete[] work;
+}
+
+void NSESolver::ComputeRefinementMarkers(Mesh& mesh, real percentage,
+        Vector& e_indx, MeshFunction<bool>& cell_refinement_marker)
+{
+
+  real error = 0.0;
+  //ComputeError(error);
+
+  //message("err: %g", error);
+  
+  std::vector<int> cells;
+  ComputeLargestIndicators_cell(mesh, e_indx, cells, percentage);
+    
+  cell_refinement_marker.init(mesh, mesh.topology().dim());
+  cell_refinement_marker = false;
+    
+  int M = cells.size();
+       
+  for(int i = 0; i < M; i++)
+  {
+    cell_refinement_marker.set(cells[i], true);
+  }
+}
+
+// Utility function for mesh rotation
+void NSESolver::computeX(Function& XX, Form* aM, Mesh& mesh)
+{
+  // Copy mesh coordinates into X array/function
+  int d = mesh.topology().dim();
+  UFC ufc(aM->form(), mesh, aM->dofMaps());
+  Cell c(mesh, 0);
+  uint local_dim = c.numEntities(0);
+  uint *idx  = new uint[d * local_dim];
+  uint *id  = new uint[d * local_dim];
+  real *XX_block = new real[d * local_dim];
+
+  for (CellIterator cell(mesh); !cell.end(); ++cell)
+  {
+    ufc.update(*cell, mesh.distdata());
+    (aM->dofMaps())[0].tabulate_dofs(idx, ufc.cell, cell->index());
+
+    uint ii = 0;
+    uint jj = 0;
+    for(uint i = 0; i < d; i++)
+    {
+      for(VertexIterator v(*cell); !v.end(); ++v, ii++)
+      {
+        if (!mesh.distdata().is_ghost(v->index(), 0))
+        {
+          XX_block[jj] = v->x()[i];
+          id[jj++] = idx[ii];
+        }
+      }
+    }
+    XX.vector().set(XX_block, jj, id);
+  }
+  XX.vector().apply();
+  XX.sync_ghosts();
+  delete[] XX_block;
+  delete[] idx;
+  delete[] id;
+}
+
+// Utility function for mesh rotation
+void NSESolver::rotate(Function& XX, Form* aM, Mesh& mesh, double theta)
+{
+  MeshGeometry& geometry = mesh.geometry();
+
+  uint d = mesh.topology().dim();
+  uint N = mesh.numVertices();
+  if(dolfin::MPI::numProcesses() > 1)
+    N = mesh.distdata().global_numVertices();
+  UFC ufc(aM->form(), mesh, aM->dofMaps());
+  Cell c(mesh, 0);
+  uint local_dim = c.numEntities(0);
+  uint *idx  = new uint[d * local_dim];
+  uint *id  = new uint[d * local_dim];
+  real *XX_block = new real[d * local_dim];
+
+  // Update the mesh                                                                                                                                                                                        
+  for (CellIterator cell(mesh); !cell.end(); ++cell)
+  {
+    ufc.update(*cell, mesh.distdata());
+    (aM->dofMaps())[0].tabulate_dofs(idx, ufc.cell, cell->index());
+
+    XX.vector().get(XX_block, d * local_dim, idx);
+
+    std::vector<double> xx, yy, zz;
+    uint jj = 0;
+    for(VertexIterator v(*cell); !v.end(); ++v)
+    {
+      for(unsigned int i = 0; i < d; i++)
+      {
+        if (i==0)
+          xx.push_back(XX_block[i * local_dim + jj]);
+        if (i==1)
+          yy.push_back(XX_block[i * local_dim + jj]);
+      }
+      jj++;
+    }
+    uint j = 0;
+    for(VertexIterator v(*cell); !v.end(); ++v)
+    {
+      Vertex& vertex = *v;
+
+      real theta2;
+
+      Point cp(0.35, -0.06, vertex.point()[2]);
+      Point pdiff = vertex.point() - cp;
+
+      real r = pdiff.norm();
+      if(r < 0.5)
+        theta2 = (0.0 - theta)*2*DOLFIN_PI/360.0;
+      else if(r >= 0.5 && r < 1.0)
+        theta2 = (0.0 - theta)*2*DOLFIN_PI/360.0*(1.0 - r) / (1.0 - 0.5);
+      else
+        theta2 = 0.0*2*DOLFIN_PI/360.0;
+
+      for(unsigned int i = 0; i < d; i++)
+      {
+        if (i==0)
+          XX_block[i * local_dim + j] = xx[j]*cos(theta2) - yy[j]*sin(theta2);
+        if (i==1)
+          XX_block[i * local_dim + j] = xx[j]*sin(theta2) + yy[j]*cos(theta2);
+
+        geometry.x(vertex.index(), i) = XX_block[i * local_dim + j];
+      }
+      j++;
+    }
+  }
+
+  delete[] XX_block;
+  delete[] idx;
+  delete[] id;
+
+  MPI_Barrier(dolfin::MPI::DOLFIN_COMM);
+}
+
+NSESolver::~NSESolver ()
+{
+    delete assembler;
+    delete h;
+    delete n;
+    delete nn;
+    delete cv;
+    
+    bcs_m.clear();
+    bcs_dm.clear();
+    delete dbc_c;
+    
+    delete u;
+    delete u0;
+    delete p;
+    delete p0;
+    delete nuf;
+    delete kf;
+    delete c1f;
+    delete c2f;
+    delete hminf;
+    delete dtu;
+    
+    delete rd_u;
+    delete rd_p;
+    
+    delete up;
+    delete pp;
+    delete up0;
+    delete dtup;
+    
+    delete Rm;
+    delete Rmtot;
+    delete Rc;
+    delete Rctot;
+    delete wm;
+    delete wmtot;
+    delete wc;
+    delete wctot;
+    
+    delete ei_m;
+    delete ei_c;
+    delete eij_m;
+    delete eij_c;
+    delete eif;
+    
+    delete tau_1;
+    delete tau_2;
+    delete normal;
+    
+    delete ei;
+    
+    delete ap_m,
+    delete Lp_m,
+    
+    delete ap_c;
+    delete Lp_c,
+    
+    delete ad_m,
+    delete Ld_m,
+    
+    delete ad_c,
+    delete Ld_c,
+    
+    delete Lrep_m;
+    delete Lrep_c;
+    
+    delete Md;
+    delete Ml;
+    
+    delete MH1;
+    delete MH12;
+    delete MHerrest;
+    delete MHerrestg;
+    
+    delete LRm;
+    delete MRm;
+    delete LRc;
+    delete MRc;
+    delete MRgm;
+    delete MRgc;
+    
+    delete Lwm;
+    delete Mwm;
+    delete Lwc;
+    delete Mwc;
+    
+    delete Mgwm;
+    delete Mgwc;
+    
+    delete pdep_m;
+    delete pdep_c;
+    
+    delete pded_m;
+    delete pded_c;
+    
+    delete U;
+    delete P;
+    
+    delete file_u;
+    delete file_p;
+    delete file_du;
+    delete file_dp;
+    delete file_m;
+    
+    delete Up;
+    delete dtUp;
+    delete Pp;
+    delete Rmp;
+    delete Rcp;
+}
+
+
+#warning "unused function"
+void ComputeLargestIndicators_eind(Mesh& mesh, Vector& e_indx, std::vector<int>& cells,
+                                                  real percentage)
+{
+  int N = mesh.numCells();
+  real eind, sum_e, sum_e_local, max_e, max_e_local, min_e, min_e_local;
+  sum_e = sum_e_local = max_e_local = 0.0;
+  min_e_local = 1e6;
+  
+  std::vector<std::pair<int, real> > indicators(N);
+
+  for (CellIterator cell(mesh); !cell.end(); ++cell)
+  {
+    int id = (*cell).index();
+    std::pair<int, real> p;
+    p.first = id;
+    uint ci = id;    
+    if(dolfin::MPI::numProcesses() > 1)
+      ci = mesh.distdata().get_cell_global(ci);
+    e_indx.get(&eind, 1, &ci);      
+    // Take absolute value
+    eind = abs(eind);
+    p.second = eind;    
+    indicators[id] = p;
+    max_e_local = std::max(max_e_local, eind);
+    min_e_local = std::min(min_e_local, eind);
+    sum_e_local += p.second;
+  }
+
+  less_pair comp;
+  std::sort(indicators.begin(), indicators.end(), comp);
+
+  MPI_Allreduce(&sum_e_local, &sum_e, 1, MPI_DOUBLE,
+                MPI_SUM, dolfin::MPI::DOLFIN_COMM);
+
+  MPI_Allreduce(&max_e_local, &max_e, 1, MPI_DOUBLE, 
+                MPI_MAX, dolfin::MPI::DOLFIN_COMM);
+
+  MPI_Allreduce(&min_e_local, &min_e, 1, MPI_DOUBLE, 
+                MPI_MIN, dolfin::MPI::DOLFIN_COMM);
+
+  real threshold = (percentage * 0.01 * sum_e);
+  real cutoff = (max_e + min_e) / 2.0;
+  real acc_local, acc;
+  acc_local = acc = 0.0;
+
+  int iter = 0;
+  while ( (fabs(acc - threshold) / threshold )  > 1e-2  && (iter++) < 10)
+  {
+    cutoff = (max_e + min_e) / 2.0;
+    acc = acc_local = 0.0;
+    cells.clear();
+
+    for (int i = 0; i < N; i++) 
+    {
+      std::pair<int, real> p = indicators[N - 1 - i];
+
+      cells.push_back(p.first);
+      acc_local += p.second;
+
+      if ( p.second < cutoff )
+        break;     
+    }
+
+    MPI_Allreduce(&acc_local, &acc, 1, MPI_DOUBLE, 
+                  MPI_SUM, dolfin::MPI::DOLFIN_COMM);
+        
+    ( acc > threshold ? (min_e = cutoff ) : (max_e = cutoff));    
+  }
+}
+
 
 #endif /* end of include guard: NSESOLVER_H */

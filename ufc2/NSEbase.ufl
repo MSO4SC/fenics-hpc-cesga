@@ -61,12 +61,12 @@ R_q = [grad(q), 0]
 LS_u = d*(sum([ inner(R[ii], R_v[ii]) for ii in range(0, 2) ]))
 LS_p = d*(sum([ inner(R[ii], R_q[ii]) for ii in range(0, 2) ]))
 
-Rd = [grad(p) + grad(um)*up, div(um)]
-Rd_v = [grad(v)*up, div(v)]
-Rd_q = [grad(q), 0]
+#Rd = [grad(p) + grad(um)*up, div(um)]
+#Rd_v = [grad(v)*up, div(v)]
+#Rd_q = [grad(q), 0]
 
-LSd_u = d*(sum([ inner(Rd[ii], Rd_v[ii]) for ii in range(0, 2) ]))
-LSd_p = d*(sum([ inner(Rd[ii], Rd_q[ii]) for ii in range(0, 2) ]))
+#LSd_u = d*(sum([ inner(Rd[ii], Rd_v[ii]) for ii in range(0, 2) ]))
+#LSd_p = d*(sum([ inner(Rd[ii], Rd_q[ii]) for ii in range(0, 2) ]))
 
 
 rs_m = (nu*inner(grad(u), grad(v)) + inner(grad(p) + grad(u)*u, v))*dx
@@ -92,6 +92,9 @@ rdsx_c = derivative(action(rds_m, u), pp, q)
 
 Ld_m = inner(psi_m, v)*dx + inner(bpsi_m, v)*ds
 Ld_c = inner(psi_c, q)*dx
+
+#versori = as_vector((1,0,0))
+#versorj = as_vector((0,1,0))
 
 rlds_m = rds_m + rdsx_m - Ld_m
 rlds_c = rds_c + rdsx_c - Ld_c
