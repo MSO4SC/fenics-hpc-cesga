@@ -349,289 +349,23 @@ public:
 
     virtual ~NSESolver ();
 
-    inline void step_preSolve(SolverType st)
-    {
-        if (st == SolverType::dualSolver)
-        {
-            cout << "eval dual" << endl;
-            Up->eval(s);
-            dtUp->eval(s);
-            Pp->eval(s);
-            Rmp->eval(s);
-            Rcp->eval(s);
-            cout << "eval dual done" << endl;
+    template <SolverType st>
+    inline void step_preSolve()
+    {};
 
-            umax = up->vector().norm(linf);
-        }
-    }
+    template <SolverType st>
+    void run_preStepping()
+    {};
 
-    void run_preStepping(SolverType st)
-    {
-        if(st == SolverType::primalSolver)
-        {
-          cout << "Starting primal solver" << endl;
-          a_m = ap_m; L_m = Lp_m; a_c = ap_c; L_c = Lp_c;
-          pde_m = pdep_m; pde_c = pdep_c;
-        }
+    template <SolverType st>
+    void run_postStepping()
+    {};
 
-        if(st == SolverType::dualSolver)
-        {
-          c1 = 4.0;
-          c1f->init(mesh, c1);
+    template <SolverType st>
+    void step_postSolve()
+    {};
 
-          cout << "Starting dual solver" << endl;
-          a_m = ad_m; L_m = Ld_m; a_c = ad_c; L_c = Ld_c;
-          pde_m = pded_m; pde_c = pded_c;
-          T = dual_T;
-        }
-    }
-
-    void run_postStepping(SolverType st)
-    {
-        if(solver == SolverType::primalSolver)
-        {
-#warning "poorly named variable"
-          cout << "mean drag: " << tot_drag << endl;
-          cout << "total H1primal: " << sqrt(tot_H1primal) << endl;
-          cout << "total H1primal2: " << sqrt(tot_H1primal2) << endl;
-          cout << "total Rgstm: " << sqrt(tot_Rgstm) << endl;
-          cout << "total Rgstc: " << sqrt(tot_Rgstc) << endl;
-
-          int_errest_gstcs = (sqrt(tot_Rgstm) + sqrt(tot_Rgstc));
-        }
-
-        if(solver == SolverType::dualSolver)
-        {
-          cout << "Preparing adaptivity" << endl;
-          // Adaptive error control
-          if(!ParameterSystem::parameters.defined("adapt_algorithm"))
-            dolfin_add("adapt_algorithm", "rivara");
-          dolfin_set("adapt_algorithm", "rivara");
-          if(!ParameterSystem::parameters.defined("output_format"))
-            dolfin_add("output_format", "binary");
-          dolfin_set("output_format", "binary");
-          MeshFunction<bool> cell_marker;
-
-          
-          eif->vector() = 0.0;
-          eif->vector() += ei_m->vector();
-          eif->vector() += ei_c->vector();
-          //eif->vector() /= dual_T;
-          
-          NSEErrRepMomentum3DFunctional M_ei(*eif, *cv);
-          real errest = fabs(assembler->assemble(M_ei));
-
-          //int_errest_cs = sqrt(int_errest_cs);
-
-          int_errest_gstcs *= (sqrt(tot_H1dualgstm) + sqrt(tot_H1dualgstc));
-
-          cout << "error estimate: " << errest / dual_T << endl;
-          cout << "error estimate cs: " << int_errest_cs / dual_T << endl;
-          cout << "error estimate gcs: " << int_errest_gcs / dual_T << endl;
-          cout << "error estimate gstcs: " << int_errest_gstcs / dual_T << endl;
-          cout << "total H1dualm: " << tot_H1dualm << endl;
-          cout << "total H1dualc: " << tot_H1dualc << endl;
-          cout << "total H1dualgm: " << tot_H1dualgm << endl;
-          cout << "total H1dualgc: " << tot_H1dualgc << endl;
-          cout << "total H1dualgstm: " << sqrt(tot_H1dualgstm) << endl;
-          cout << "total H1dualgstc: " << sqrt(tot_H1dualgstc) << endl;
-          cout << "total Rm: " << tot_Rm << endl;
-          cout << "total Rc: " << tot_Rc << endl;
-          cout << "total Rgm: " << tot_Rgm << endl;
-          cout << "total Rgc: " << tot_Rgc << endl;
-
-          File file_ei("ei.bin");
-          file_ei << *eif;
-
-          File file_Rmtot("Rmtot.bin");
-          file_Rmtot << *Rmtot;
-          File file_Rctot("Rctot.bin");
-          file_Rctot << *Rctot;
-          File file_wmtot("wmtot.bin");
-          file_wmtot << *wmtot;
-          File file_wctot("wctot.bin");
-          file_wctot << *wctot;
-
-          MeshFunction<real> eimf;
-          eimf.init(mesh, mesh.topology().dim());
-      
-          // Initialize eimf - assumption on dofmap for DG0
-          for (CellIterator c(mesh); !c.end(); ++c)
-          {
-            eimf.set(*c, eif->vector()[c->index()]);
-          }
-
-          MPI_Barrier(dolfin::MPI::DOLFIN_COMM);
-      
-          cout << "Output eimf: " << endl;
-          File file_eimf("eimf.bin");
-          file_eimf << eimf;
-          
-
-          ComputeRefinementMarkers(mesh, adapt_percent, *ei, cell_marker);
-
-          if(MPI::processNumber() == 0)
-            dolfin_set("output destination","terminal");
-          message("Adaptive refinement");
-          message("cells before: %d",
-                  (dolfin::MPI::numProcesses() > 1 ?
-                   mesh.distdata().global_numCells() : mesh.numCells()));
-          message("vertices before: %d",
-                  (dolfin::MPI::numProcesses() > 1 ?
-                   mesh.distdata().global_numVertices() : mesh.numVertices()));
-          dolfin_set("output destination","silent");
-
-          RivaraRefinement::refine(mesh, cell_marker);
-
-          if(MPI::processNumber() == 0)
-            dolfin_set("output destination","terminal");
-          message("cells after: %d",
-                  (dolfin::MPI::numProcesses() > 1 ?
-                   mesh.distdata().global_numCells() : mesh.numCells()));
-          message("vertices after: %d",
-                  (dolfin::MPI::numProcesses() > 1 ?
-                   mesh.distdata().global_numVertices() : mesh.numVertices()));
-          dolfin_set("output destination","silent");
-          
-          File file_rm("rmesh.bin");
-          file_rm << mesh;
-        }
-    }
-
-    void step_postSolve(SolverType st)
-    {
-        if(solver == SolverType::primalSolver)
-        {
-          real drag = 0.0, lift = 0.0;
-          drag = assembler->assemble(*Md);
-          cout << "drag: " << drag << " t = " << t << endl;
-          lift = assembler->assemble(*Ml);
-          cout << "lift: " << lift << " t = " << t << endl;
-
-          assembler->assemble(Rm->vector(), *LRm);
-          real Rmi = assembler->assemble(*MRm);
-          cout << "step primal Rm: " << Rmi << endl;
-          assembler->assemble(Rc->vector(), *LRc);
-          real Rci = assembler->assemble(*MRc);
-          cout << "step primal Rc: " << Rci << endl;
-
-          if(t >= dual_T)
-          {
-            // Output drag and lift, together with other diagnostics
-            tot_drag = (drag + n_mean*tot_drag) / (n_mean + 1);
-            cout << "step t: " << t <<
-              " drag: " << drag <<
-              " lift: " << lift << endl;
-            real H1primal = assembler->assemble(*MH1);
-            tot_H1primal = (H1primal + n_mean*tot_H1primal) / (n_mean + 1);
-            real H1primal2 = assembler->assemble(*MH12);
-            tot_H1primal2 = (H1primal2 + n_mean*tot_H1primal2) / (n_mean + 1);
-            cout << "step H1 primal: " << tot_H1primal << endl;
-            cout << "step H1 primal2: " << tot_H1primal2 << endl;
-            n_mean++;
-
-            real Rgstmi = assembler->assemble(*MRgm);
-            tot_Rgstm += k*Rgstmi;
-            real Rgstci = assembler->assemble(*MRgc);
-            tot_Rgstc += k*Rgstci;
-          }
-
-          if(stepcounter == 0 || t > T*(real(sample)/real(no_samples)))
-          {
-            *file_u << *u;
-            *file_p << *p;
-
-            // Save primal velocity
-            up->vector() = u->vector(); 
-            up->vector() += u0->vector(); 
-            up->vector() /= 2.;
-            File ubinfile(Up->getNewFilename(t));
-            ubinfile << up->vector();
-
-            // Save primal velocity time-derivative
-            dtu->vector() = u->vector();
-            dtu->vector() -= u0->vector();
-            dtu->vector() /= k;
-            File dtubinfile(dtUp->getNewFilename(t));
-            dtubinfile << dtu->vector();
-
-            // Save primal pressure
-            File pbinfile(Pp->getNewFilename(t));
-            pbinfile << p->vector();
-
-            // Save primal residuals
-            File Rmbinfile(Rmp->getNewFilename(t));
-            Rmbinfile << Rm->vector();
-
-            File Rcbinfile(Rcp->getNewFilename(t));
-            Rcbinfile << Rc->vector();
-          }
-          else
-          {
-            *file_du << *u; *file_dp << *p;
-          }
-          
-          sample++;
-        }
-        else if(solver == SolverType::dualSolver)
-        {
-          cout << "errest" << endl;
-          assembler->assemble(eij_m->vector(), *Lrep_m);
-          ei_m->vector().axpy(k, eij_m->vector());
-          assembler->assemble(eij_c->vector(), *Lrep_c);
-          ei_c->vector().axpy(k, eij_c->vector());
-          cout << "errest done: " << ei_m->vector().norm(linf) <<
-            " " << ei_c->vector().norm(linf) << endl;
-
-          assembler->assemble(wm->vector(), *Lwm);
-          real H1dualm = assembler->assemble(*Mwm);
-          tot_H1dualm += k*H1dualm;
-          real H1dualgm = sqrt(assembler->assemble(*Mgwm));
-          tot_H1dualgm += k*H1dualgm;
-          real H1dualgstm = assembler->assemble(*Mgwm);
-          tot_H1dualgstm += k*H1dualgstm;
-          wmtot->vector().axpy(k, wm->vector());
-          assembler->assemble(wc->vector(), *Lwc);
-          real H1dualc = assembler->assemble(*Mwc);
-          tot_H1dualc += k*H1dualc;
-          real H1dualgc = sqrt(assembler->assemble(*Mgwc));
-          tot_H1dualgc += k*H1dualgc;
-          real H1dualgstc = assembler->assemble(*Mgwc);
-          tot_H1dualgstc += k*H1dualgstc;
-          wctot->vector().axpy(k, wc->vector());
-
-          real Rmi = assembler->assemble(*MRm);
-          tot_Rm += k*Rmi;
-          real Rgmi = 0.0;
-          Rmtot->vector().axpy(k, Rm->vector());
-          real Rci = assembler->assemble(*MRc);
-          tot_Rc += k*Rci;
-          real Rgci = 0.0;
-          Rctot->vector().axpy(k, Rc->vector());
-
-          real errest_cs = assembler->assemble(*MHerrest);
-          int_errest_cs += k*errest_cs;
-          real errest_gcs = sqrt(assembler->assemble(*MHerrestg));
-          int_errest_gcs += k*errest_gcs;
-          real errest_gstcs = assembler->assemble(*MHerrestg);
-          int_errest_gstcs += k*errest_gstcs;
-          n_mean++;
-
-          cout << "step dual t: " << t <<
-            " dualm: " << H1dualm <<
-            " dualc: " << H1dualc <<
-            " dualgm: " << H1dualgm <<
-            " dualgc: " << H1dualgc <<
-            " Rm: " << Rmi <<
-            " Rc: " << Rci <<
-            " Rgm: " << Rgmi <<
-            " Rgc: " << Rgci <<
-            " errest_cs: " << errest_cs <<
-            " errest_gcs: " << errest_gcs <<
-            endl;
-        }
-    }
-
+    template<SolverType st>
     void step()
     {
         stimer = time();
@@ -640,7 +374,7 @@ public:
 
         umax = u->vector().norm(linf);
         
-        step_preSolve(solver);
+        step_preSolve<st>();
         
         if(stepcounter >= 100)
         {
@@ -658,7 +392,7 @@ public:
 
         solve_system();
 
-        step_postSolve(solver);
+        step_postSolve<st>();
 
         u0->vector() = u->vector();
         up0->vector() = up->vector();
@@ -719,9 +453,10 @@ public:
       }
     }
 
-    void run_solver(SolverType solver)
+    template <SolverType st>
+    void run_solver()
     {
-        run_preStepping(solver);
+        run_preStepping<st>();
 
         u->vector() = 0.0;
         u0->vector() = 0.0;
@@ -742,19 +477,18 @@ public:
         // Time-stepping
         while(t <= T)
         {
-            step();
+            step<st>();
         }
         
-        run_postStepping(solver);
+        run_postStepping<st>();
 
         cout << "Solver done" << endl;
     }
 
     void run()
     {
-      run_solver(solver);
-      solver = SolverType::dualSolver;
-      run_solver(solver);
+      run_solver<SolverType::primalSolver>();
+      run_solver<SolverType::dualSolver>();
     }
 
     real getT() const {return T;}
@@ -780,7 +514,7 @@ private:
 
     Mesh& mesh;
 
-    SolverType solver = SolverType::primalSolver;
+//    SolverType solver = SolverType::primalSolver;
 
     bool coeffchanged = true;
     real int_errest_gstcs = 0;
@@ -956,10 +690,288 @@ private:
         real int_errest_cs = 0;
         real int_errest_gcs = 0;
         
-
         int sample = 0;
-
 };
+
+
+template<>
+void NSESolver::run_preStepping<NSESolver::SolverType::primalSolver>()
+{
+  cout << "Starting primal solver" << endl;
+  a_m = ap_m; L_m = Lp_m; a_c = ap_c; L_c = Lp_c;
+  pde_m = pdep_m; pde_c = pdep_c;
+}
+
+template<>
+void NSESolver::run_preStepping<NSESolver::SolverType::dualSolver>()
+{
+  c1 = 4.0;
+  c1f->init(mesh, c1);
+
+  cout << "Starting dual solver" << endl;
+  a_m = ad_m; L_m = Ld_m; a_c = ad_c; L_c = Ld_c;
+  pde_m = pded_m; pde_c = pded_c;
+  T = dual_T;
+}
+
+template <>
+inline void NSESolver::step_preSolve<NSESolver::SolverType::dualSolver>()
+{
+    cout << "eval dual" << endl;
+    Up->eval(s);
+    dtUp->eval(s);
+    Pp->eval(s);
+    Rmp->eval(s);
+    Rcp->eval(s);
+    cout << "eval dual done" << endl;
+
+    umax = up->vector().norm(linf);
+}
+
+template <>
+void NSESolver::run_postStepping<NSESolver::SolverType::primalSolver>()
+{
+#warning "poorly named variable"
+  cout << "mean drag: " << tot_drag << endl;
+  cout << "total H1primal: " << sqrt(tot_H1primal) << endl;
+  cout << "total H1primal2: " << sqrt(tot_H1primal2) << endl;
+  cout << "total Rgstm: " << sqrt(tot_Rgstm) << endl;
+  cout << "total Rgstc: " << sqrt(tot_Rgstc) << endl;
+
+  int_errest_gstcs = (sqrt(tot_Rgstm) + sqrt(tot_Rgstc));
+}
+
+template <>
+void NSESolver::run_postStepping<NSESolver::SolverType::dualSolver>()
+{
+      cout << "Preparing adaptivity" << endl;
+      // Adaptive error control
+      if(!ParameterSystem::parameters.defined("adapt_algorithm"))
+        dolfin_add("adapt_algorithm", "rivara");
+      dolfin_set("adapt_algorithm", "rivara");
+      if(!ParameterSystem::parameters.defined("output_format"))
+        dolfin_add("output_format", "binary");
+      dolfin_set("output_format", "binary");
+      MeshFunction<bool> cell_marker;
+
+      
+      eif->vector() = 0.0;
+      eif->vector() += ei_m->vector();
+      eif->vector() += ei_c->vector();
+      //eif->vector() /= dual_T;
+      
+      NSEErrRepMomentum3DFunctional M_ei(*eif, *cv);
+      real errest = fabs(assembler->assemble(M_ei));
+
+      //int_errest_cs = sqrt(int_errest_cs);
+
+      int_errest_gstcs *= (sqrt(tot_H1dualgstm) + sqrt(tot_H1dualgstc));
+
+      cout << "error estimate: " << errest / dual_T << endl;
+      cout << "error estimate cs: " << int_errest_cs / dual_T << endl;
+      cout << "error estimate gcs: " << int_errest_gcs / dual_T << endl;
+      cout << "error estimate gstcs: " << int_errest_gstcs / dual_T << endl;
+      cout << "total H1dualm: " << tot_H1dualm << endl;
+      cout << "total H1dualc: " << tot_H1dualc << endl;
+      cout << "total H1dualgm: " << tot_H1dualgm << endl;
+      cout << "total H1dualgc: " << tot_H1dualgc << endl;
+      cout << "total H1dualgstm: " << sqrt(tot_H1dualgstm) << endl;
+      cout << "total H1dualgstc: " << sqrt(tot_H1dualgstc) << endl;
+      cout << "total Rm: " << tot_Rm << endl;
+      cout << "total Rc: " << tot_Rc << endl;
+      cout << "total Rgm: " << tot_Rgm << endl;
+      cout << "total Rgc: " << tot_Rgc << endl;
+
+      File file_ei("ei.bin");
+      file_ei << *eif;
+
+      File file_Rmtot("Rmtot.bin");
+      file_Rmtot << *Rmtot;
+      File file_Rctot("Rctot.bin");
+      file_Rctot << *Rctot;
+      File file_wmtot("wmtot.bin");
+      file_wmtot << *wmtot;
+      File file_wctot("wctot.bin");
+      file_wctot << *wctot;
+
+      MeshFunction<real> eimf;
+      eimf.init(mesh, mesh.topology().dim());
+  
+      // Initialize eimf - assumption on dofmap for DG0
+      for (CellIterator c(mesh); !c.end(); ++c)
+      {
+        eimf.set(*c, eif->vector()[c->index()]);
+      }
+
+      MPI_Barrier(dolfin::MPI::DOLFIN_COMM);
+  
+      cout << "Output eimf: " << endl;
+      File file_eimf("eimf.bin");
+      file_eimf << eimf;
+      
+
+      ComputeRefinementMarkers(mesh, adapt_percent, *ei, cell_marker);
+
+      if(MPI::processNumber() == 0)
+        dolfin_set("output destination","terminal");
+      message("Adaptive refinement");
+      message("cells before: %d",
+              (dolfin::MPI::numProcesses() > 1 ?
+               mesh.distdata().global_numCells() : mesh.numCells()));
+      message("vertices before: %d",
+              (dolfin::MPI::numProcesses() > 1 ?
+               mesh.distdata().global_numVertices() : mesh.numVertices()));
+      dolfin_set("output destination","silent");
+
+      RivaraRefinement::refine(mesh, cell_marker);
+
+      if(MPI::processNumber() == 0)
+        dolfin_set("output destination","terminal");
+      message("cells after: %d",
+              (dolfin::MPI::numProcesses() > 1 ?
+               mesh.distdata().global_numCells() : mesh.numCells()));
+      message("vertices after: %d",
+              (dolfin::MPI::numProcesses() > 1 ?
+               mesh.distdata().global_numVertices() : mesh.numVertices()));
+      dolfin_set("output destination","silent");
+      
+      File file_rm("rmesh.bin");
+      file_rm << mesh;
+}
+
+template <>
+void NSESolver::step_postSolve<NSESolver::SolverType::primalSolver>()
+{
+  real drag = 0.0, lift = 0.0;
+  drag = assembler->assemble(*Md);
+  cout << "drag: " << drag << " t = " << t << endl;
+  lift = assembler->assemble(*Ml);
+  cout << "lift: " << lift << " t = " << t << endl;
+
+  assembler->assemble(Rm->vector(), *LRm);
+  real Rmi = assembler->assemble(*MRm);
+  cout << "step primal Rm: " << Rmi << endl;
+  assembler->assemble(Rc->vector(), *LRc);
+  real Rci = assembler->assemble(*MRc);
+  cout << "step primal Rc: " << Rci << endl;
+
+  if(t >= dual_T)
+  {
+    // Output drag and lift, together with other diagnostics
+    tot_drag = (drag + n_mean*tot_drag) / (n_mean + 1);
+    cout << "step t: " << t <<
+      " drag: " << drag <<
+      " lift: " << lift << endl;
+    real H1primal = assembler->assemble(*MH1);
+    tot_H1primal = (H1primal + n_mean*tot_H1primal) / (n_mean + 1);
+    real H1primal2 = assembler->assemble(*MH12);
+    tot_H1primal2 = (H1primal2 + n_mean*tot_H1primal2) / (n_mean + 1);
+    cout << "step H1 primal: " << tot_H1primal << endl;
+    cout << "step H1 primal2: " << tot_H1primal2 << endl;
+    n_mean++;
+
+    real Rgstmi = assembler->assemble(*MRgm);
+    tot_Rgstm += k*Rgstmi;
+    real Rgstci = assembler->assemble(*MRgc);
+    tot_Rgstc += k*Rgstci;
+  }
+
+  if(stepcounter == 0 || t > T*(real(sample)/real(no_samples)))
+  {
+    *file_u << *u;
+    *file_p << *p;
+
+    // Save primal velocity
+    up->vector() = u->vector(); 
+    up->vector() += u0->vector(); 
+    up->vector() /= 2.;
+    File ubinfile(Up->getNewFilename(t));
+    ubinfile << up->vector();
+
+    // Save primal velocity time-derivative
+    dtu->vector() = u->vector();
+    dtu->vector() -= u0->vector();
+    dtu->vector() /= k;
+    File dtubinfile(dtUp->getNewFilename(t));
+    dtubinfile << dtu->vector();
+
+    // Save primal pressure
+    File pbinfile(Pp->getNewFilename(t));
+    pbinfile << p->vector();
+
+    // Save primal residuals
+    File Rmbinfile(Rmp->getNewFilename(t));
+    Rmbinfile << Rm->vector();
+
+    File Rcbinfile(Rcp->getNewFilename(t));
+    Rcbinfile << Rc->vector();
+  }
+  else
+  {
+    *file_du << *u; *file_dp << *p;
+  }
+  
+  sample++;
+}
+
+template <>
+void NSESolver::step_postSolve<NSESolver::SolverType::dualSolver>()
+{
+    cout << "errest" << endl;
+    assembler->assemble(eij_m->vector(), *Lrep_m);
+    ei_m->vector().axpy(k, eij_m->vector());
+    assembler->assemble(eij_c->vector(), *Lrep_c);
+    ei_c->vector().axpy(k, eij_c->vector());
+    cout << "errest done: " << ei_m->vector().norm(linf) <<
+      " " << ei_c->vector().norm(linf) << endl;
+    
+    assembler->assemble(wm->vector(), *Lwm);
+    real H1dualm = assembler->assemble(*Mwm);
+    tot_H1dualm += k*H1dualm;
+    real H1dualgm = sqrt(assembler->assemble(*Mgwm));
+    tot_H1dualgm += k*H1dualgm;
+    real H1dualgstm = assembler->assemble(*Mgwm);
+    tot_H1dualgstm += k*H1dualgstm;
+    wmtot->vector().axpy(k, wm->vector());
+    assembler->assemble(wc->vector(), *Lwc);
+    real H1dualc = assembler->assemble(*Mwc);
+    tot_H1dualc += k*H1dualc;
+    real H1dualgc = sqrt(assembler->assemble(*Mgwc));
+    tot_H1dualgc += k*H1dualgc;
+    real H1dualgstc = assembler->assemble(*Mgwc);
+    tot_H1dualgstc += k*H1dualgstc;
+    wctot->vector().axpy(k, wc->vector());
+    
+    real Rmi = assembler->assemble(*MRm);
+    tot_Rm += k*Rmi;
+    real Rgmi = 0.0;
+    Rmtot->vector().axpy(k, Rm->vector());
+    real Rci = assembler->assemble(*MRc);
+    tot_Rc += k*Rci;
+    real Rgci = 0.0;
+    Rctot->vector().axpy(k, Rc->vector());
+    
+    real errest_cs = assembler->assemble(*MHerrest);
+    int_errest_cs += k*errest_cs;
+    real errest_gcs = sqrt(assembler->assemble(*MHerrestg));
+    int_errest_gcs += k*errest_gcs;
+    real errest_gstcs = assembler->assemble(*MHerrestg);
+    int_errest_gstcs += k*errest_gstcs;
+    n_mean++;
+    
+    cout << "step dual t: " << t <<
+      " dualm: " << H1dualm <<
+      " dualc: " << H1dualc <<
+      " dualgm: " << H1dualgm <<
+      " dualgc: " << H1dualgc <<
+      " Rm: " << Rmi <<
+      " Rc: " << Rci <<
+      " Rgm: " << Rgmi <<
+      " Rgc: " << Rgci <<
+      " errest_cs: " << errest_cs <<
+      " errest_gcs: " << errest_gcs <<
+      endl;
+}
 
 void NSESolver::ComputeTangentialVectors(Vector& tau_1, 
                               Vector& tau_2, Vector& normal,
@@ -1469,6 +1481,8 @@ void ComputeLargestIndicators_eind(Mesh& mesh, Vector& e_indx, std::vector<int>&
     ( acc > threshold ? (min_e = cutoff ) : (max_e = cutoff));    
   }
 }
+
+
 
 
 #endif /* end of include guard: NSESOLVER_H */
