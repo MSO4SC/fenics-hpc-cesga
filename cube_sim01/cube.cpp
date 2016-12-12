@@ -63,7 +63,14 @@ constexpr real ymax = 10.0;
 constexpr real zmin = -10.0;
 constexpr real zmax = 10.0;
 
+constexpr real xbody = 0;
+constexpr real ybody = 0;
+constexpr real zbody = 0;
+
 constexpr real tFinal = 5.0;
+
+constexpr real Uin = 1;
+constexpr real Uin_dual = 1;
 
 // Inflow velocity
 class Inflow : public Function
@@ -73,12 +80,9 @@ public:
 
   void eval(real* values, const real* x) const
   {
-    values[0] = 0.0;
+    values[0] = Uin;
     values[1] = 0.0;
     values[2] = 0.0;
-
-    if(x[0] <= xmax - bmarg)
-      values[0] = 1.0;
   }
 };
 
@@ -88,6 +92,32 @@ class InflowBoundary : public SubDomain
   bool inside(const real* x, bool on_boundary) const
   {
     return x[0] <= xmin + bmarg && on_boundary;
+  }
+};
+
+// Inflow velocity for the dual problem
+class BodyDualInflow : public Function
+{
+public:
+  BodyDualInflow(Mesh& mesh) : Function(mesh) {}
+
+  void eval(real* values, const real* x) const
+  {
+    values[0] = Uin_dual;
+    values[1] = 0.0;
+    values[2] = 0.0;
+  }
+};
+
+// Sub domain for Dirichlet boundary condition
+class Body : public SubDomain
+{
+  bool inside(const real* x, bool on_boundary) const
+  {
+    return on_boundary and
+        fabs(x[0] - xbody) < robj and
+        fabs(x[1] - ybody) < robj and
+        fabs(x[2] - zbody) < robj;
   }
 };
 
@@ -102,13 +132,15 @@ public:
     values[0] = 0.0;
     values[1] = 0.0;
     values[2] = 0.0;
+  }
+};
 
-    if(fabs(x[0] - 0.0) < robj &&
-       fabs(x[1] - 0.0) < robj &&
-       fabs(x[2] - 0.0) < robj)
-    {
-      values[0] = 1.0;
-    }
+// Sub domain for Dirichlet boundary condition
+class AllBoundary : public SubDomain
+{
+  bool inside(const real* x, bool on_boundary) const
+  {
+    return on_boundary;
   }
 };
 
@@ -135,15 +167,6 @@ class OutflowBoundary : public SubDomain
 };
 
 // Sub domain for Dirichlet boundary condition
-class AllBoundary : public SubDomain
-{
-  bool inside(const real* x, bool on_boundary) const
-  {
-    return on_boundary;
-  }
-};
-
-// Sub domain for Dirichlet boundary condition
 class DirichletBoundary : public SubDomain
 {
   bool inside(const real* x, bool on_boundary) const
@@ -165,7 +188,6 @@ class SlipBoundary : public SubDomain
 class ThetaDrag : public Function
 {
 public:
-
   ThetaDrag(Mesh& mesh) : Function(mesh) {}
 
   void eval(real* values, const real* x) const
@@ -174,9 +196,9 @@ public:
     values[1] = 0.0;
     values[2] = 0.0;
 
-    if(fabs(x[0] - 0.0) < robj &&
-       fabs(x[1] - 0.0) < robj &&
-       fabs(x[2] - 0.0) < robj)
+    if(fabs(x[0] - xbody) < robj &&
+       fabs(x[1] - ybody) < robj &&
+       fabs(x[2] - zbody) < robj)
     {
       values[0] = 1.0;
     }
@@ -206,9 +228,9 @@ public:
     values[1] = 0.0;
     values[2] = 0.0;
 
-    if(fabs(x[0] - 0.0) < robj &&
-       fabs(x[1] - 0.0) < robj &&
-       fabs(x[2] - 0.0) < robj)
+    if(fabs(x[0] - xbody) < robj &&
+       fabs(x[1] - ybody) < robj &&
+       fabs(x[2] - zbody) < robj)
     {
       values[1] = 1.0;
     }
@@ -320,7 +342,6 @@ public:
   }
 };
 
-
 int main(int argc, char* argv[])
 {
   // Create mesh
@@ -332,6 +353,9 @@ int main(int argc, char* argv[])
 
   AllBoundary aboundary;
   DualInflow dinflow(mesh);
+
+  Body body;
+  BodyDualInflow bodyDualInflow(mesh);
 
   OutflowBoundary oboundary;
   Outflow outflow(mesh);
@@ -359,7 +383,9 @@ int main(int argc, char* argv[])
   dbcs_c.push_back(std::make_pair(&oboundary,&outflow));
 
   DirichletBCList dbcs_dm;
+#warning "order is critical here"
   dbcs_dm.push_back(std::make_pair(&aboundary,&dinflow));
+  dbcs_dm.push_back(std::make_pair(&body,&bodyDualInflow));
 
   NSESolver solver(
       mesh,
@@ -376,6 +402,8 @@ int main(int argc, char* argv[])
       );
   solver.setT(tFinal);
   solver.run();
+
+  exit(0);
 
   return 0;
 }
