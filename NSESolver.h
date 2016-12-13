@@ -732,7 +732,6 @@ inline void NSESolver::step_preSolve<NSESolver::SolverType::dualSolver>()
 template <>
 void NSESolver::run_postStepping<NSESolver::SolverType::primalSolver>()
 {
-#warning "poorly named variable"
   cout << "mean drag: " << mean_drag << endl;
   cout << "total H1primal: " << sqrt(tot_H1primal) << endl;
   cout << "total H1primal2: " << sqrt(tot_H1primal2) << endl;
