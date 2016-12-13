@@ -349,22 +349,6 @@ public:
 
     virtual ~NSESolver ();
 
-    template <SolverType st>
-    inline void step_preSolve()
-    {};
-
-    template <SolverType st>
-    void run_preStepping()
-    {};
-
-    template <SolverType st>
-    void run_postStepping()
-    {};
-
-    template <SolverType st>
-    void step_postSolve()
-    {};
-
     template<SolverType st>
     void step()
     {
@@ -402,6 +386,70 @@ public:
         if(stabcounter > 0)
           stabcounter--;
     }
+
+    template <SolverType st = SolverType::primalSolver>
+    void run_solver()
+    {
+        run_preStepping<st>();
+
+        u->vector() = 0.0;
+        u0->vector() = 0.0;
+        p->vector() = 0.0;
+        p0->vector() = 0.0;
+        up0->vector() = 0.0;
+
+        Rmtot->vector() = 0.0;
+        Rctot->vector() = 0.0;
+        wmtot->vector() = 0.0;
+        wctot->vector() = 0.0;
+        
+        t = 0;
+
+        k = 0.1*hmin;
+        kf->init(mesh, k);
+
+        // Time-stepping
+        while(t <= T)
+        {
+            step<st>();
+        }
+        
+        run_postStepping<st>();
+
+        cout << "Solver done" << endl;
+    }
+
+    void run()
+    {
+      run_solver<SolverType::primalSolver>();
+      run_solver<SolverType::dualSolver>();
+    }
+
+    real getT() const {return T;}
+    void setT(const real _T)
+    {
+        T = _T;
+        primal_T = T;
+        dual_T = 1. * T / 2;
+    }
+
+
+private:
+    template <SolverType st>
+    inline void step_preSolve()
+    {};
+
+    template <SolverType st>
+    void run_preStepping()
+    {};
+
+    template <SolverType st>
+    void run_postStepping()
+    {};
+
+    template <SolverType st>
+    void step_postSolve()
+    {};
 
     void solve_system()
     {
@@ -453,54 +501,6 @@ public:
       }
     }
 
-    template <SolverType st>
-    void run_solver()
-    {
-        run_preStepping<st>();
-
-        u->vector() = 0.0;
-        u0->vector() = 0.0;
-        p->vector() = 0.0;
-        p0->vector() = 0.0;
-        up0->vector() = 0.0;
-
-        Rmtot->vector() = 0.0;
-        Rctot->vector() = 0.0;
-        wmtot->vector() = 0.0;
-        wctot->vector() = 0.0;
-        
-        t = 0;
-
-        k = 0.1*hmin;
-        kf->init(mesh, k);
-
-        // Time-stepping
-        while(t <= T)
-        {
-            step<st>();
-        }
-        
-        run_postStepping<st>();
-
-        cout << "Solver done" << endl;
-    }
-
-    void run()
-    {
-      run_solver<SolverType::primalSolver>();
-      run_solver<SolverType::dualSolver>();
-    }
-
-    real getT() const {return T;}
-    void setT(const real _T)
-    {
-        T = _T;
-        primal_T = T;
-        dual_T = 1. * T / 2;
-    }
-
-
-private:
     void ComputeTangentialVectors(Vector& tau_1,
             Vector& tau_2, Vector& normal, Form& form, NodeNormal& node_normal);
     void merge(real *a,real *b,real *res,int an,int bn);
@@ -664,33 +664,34 @@ private:
     real adapt_percent = 5.;
 
     int stepcounter = 0;
-    real t = 0; real s = 0;
+    real t = 0;
+    real s = 0;
     real stimer;
     real umax;
 
-    real tot_drag = 0;
+    real mean_drag = 0;
     real tot_lift = 0;
     int n_mean = 0;
 
-        real tot_Rgstm = 0;
-        real tot_Rgstc = 0;
-        real tot_H1primal = 0;
-        real tot_H1primal2 = 0;
-        real tot_H1dualm = 0;
-        real tot_H1dualc = 0;
-        real tot_H1dualgm = 0;
-        real tot_H1dualgc = 0;
-        real tot_H1dualgstm = 0;
-        real tot_H1dualgstc = 0;
-        real tot_Rm = 0;
-        real tot_Rc = 0;
-        real tot_Rgm = 0;
-        real tot_Rgc = 0;
+    real tot_Rgstm = 0;
+    real tot_Rgstc = 0;
+    real tot_H1primal = 0;
+    real tot_H1primal2 = 0;
+    real tot_H1dualm = 0;
+    real tot_H1dualc = 0;
+    real tot_H1dualgm = 0;
+    real tot_H1dualgc = 0;
+    real tot_H1dualgstm = 0;
+    real tot_H1dualgstc = 0;
+    real tot_Rm = 0;
+    real tot_Rc = 0;
+    real tot_Rgm = 0;
+    real tot_Rgc = 0;
 
-        real int_errest_cs = 0;
-        real int_errest_gcs = 0;
-        
-        int sample = 0;
+    real int_errest_cs = 0;
+    real int_errest_gcs = 0;
+    
+    int sample = 0;
 };
 
 
@@ -732,7 +733,7 @@ template <>
 void NSESolver::run_postStepping<NSESolver::SolverType::primalSolver>()
 {
 #warning "poorly named variable"
-  cout << "mean drag: " << tot_drag << endl;
+  cout << "mean drag: " << mean_drag << endl;
   cout << "total H1primal: " << sqrt(tot_H1primal) << endl;
   cout << "total H1primal2: " << sqrt(tot_H1primal2) << endl;
   cout << "total Rgstm: " << sqrt(tot_Rgstm) << endl;
@@ -858,7 +859,7 @@ void NSESolver::step_postSolve<NSESolver::SolverType::primalSolver>()
   if(t >= dual_T)
   {
     // Output drag and lift, together with other diagnostics
-    tot_drag = (drag + n_mean*tot_drag) / (n_mean + 1);
+    mean_drag = (drag + n_mean*mean_drag) / (n_mean + 1);
     cout << "step t: " << t <<
       " drag: " << drag <<
       " lift: " << lift << endl;
@@ -1101,7 +1102,7 @@ void NSESolver::ComputeLargestIndicators_cell(Mesh& mesh, Vector& e_indx,
 
   /*
    *  FIXME reduce memory usage
-   *  merge only half of the recived data
+   *  merge only half of the received data
    */
 
   uint M_max, M_tot;
