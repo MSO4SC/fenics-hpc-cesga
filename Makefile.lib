@@ -3,7 +3,7 @@
 
 CFLAGS  = `pkg-config --cflags dolfin`
 LIBS    = `pkg-config --libs dolfin`
-CXX     = `pkg-config --variable=compiler dolfin` -g -std=c++11
+CXX     = `pkg-config --variable=compiler dolfin` -g
 
 FFCFLAGS = -O -r quadrature -fsplit -l dolfin
 
