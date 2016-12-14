@@ -13,7 +13,7 @@ MYOBJECTS = ../main.o
 OBJECTS = $(UFC2OBJECTS) $(LIBOBJECTS) $(MYOBJECTS)
 
 clean: cleanLib
-	-rm -f *.o $(DEST)
+	-rm -f $(MYOBJECTS) $(DEST)
 
 $(DEST): $(OBJECTS)
 	$(CXX) -o $@ $(OBJECTS) $(CFLAGS) $(LIBS)
