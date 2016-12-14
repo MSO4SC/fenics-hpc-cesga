@@ -45,7 +45,8 @@
 
 using namespace dolfin;
 
-typedef std::vector<std::pair<SubDomain*,Function*>> DirichletBCList;
+                                            // join me when C++11
+typedef std::vector<std::pair<SubDomain*,Function*> > DirichletBCList;
 typedef std::vector<SubDomain*> SlipBCList;
 
 // Comparison operator for index/value pairs
@@ -62,7 +63,8 @@ struct less_pair : public std::binary_function<std::pair<int, real>,
 class NSESolver
 {
 public:
-    enum class SolverType {primalSolver, dualSolver};
+    // this would be an enum class in C++11
+    enum SolverType {primalSolver, dualSolver};
 
     NSESolver(
         Mesh& mesh,
@@ -126,21 +128,37 @@ public:
       nn = new NodeNormal(mesh);
       cv = new CellVolume(mesh);
 
-      // create bcs
-      for (auto bc : dbcs_m)
+      // create bcs - C++11 version commented for now
+//      for (auto bc : dbcs_m)
+//      {
+//        bcs_m.push_back(new DirichletBC(*bc.second,mesh,*bc.first));
+//      }
+//
+//      for (auto bc : sbcs_m)
+//      {
+//        bcs_m.push_back(new SlipBC(mesh,*bc,*nn));
+//      }
+//
+//      for (auto bc : dbcs_dm)
+//      {
+//        bcs_dm.push_back(new DirichletBC(*bc.second,mesh,*bc.first));
+//      }
+
+      for (int i = 0; i < dbcs_m.size(); i++)
       {
-        bcs_m.push_back(new DirichletBC(*bc.second,mesh,*bc.first));
+        bcs_m.push_back(new DirichletBC(*dbcs_m[i].second,mesh,*dbcs_m[i].first));
       }
 
-      for (auto bc : sbcs_m)
+      for (int i = 0; i < sbcs_m.size(); i++)
       {
-        bcs_m.push_back(new SlipBC(mesh,*bc,*nn));
+        bcs_m.push_back(new SlipBC(mesh,*sbcs_m[i],*nn));
       }
 
-      for (auto bc : dbcs_dm)
+      for (int i = 0; i < dbcs_dm.size(); i++)
       {
-        bcs_dm.push_back(new DirichletBC(*bc.second,mesh,*bc.first));
+        bcs_dm.push_back(new DirichletBC(*dbcs_dm[i].second,mesh,*dbcs_dm[i].first));
       }
+
 
 #warning "this is a temporary ugly thing, please improve me!"
       dbc_c = new DirichletBC(*dbcs_c[0].second,mesh,*dbcs_c[0].first);
@@ -387,7 +405,8 @@ public:
           stabcounter--;
     }
 
-    template <SolverType st = SolverType::primalSolver>
+//    template <SolverType st = SolverType::primalSolver> // C++11
+    template <SolverType st>
     void run_solver()
     {
         run_preStepping<st>();
@@ -421,8 +440,10 @@ public:
 
     void run()
     {
-      run_solver<SolverType::primalSolver>();
-      run_solver<SolverType::dualSolver>();
+//      run_solver<SolverType::primalSolver>(); // C++11
+//      run_solver<SolverType::dualSolver>();   // C++11
+      run_solver<primalSolver>();
+      run_solver<dualSolver>();
     }
 
     real getT() const {return T;}
@@ -696,7 +717,7 @@ private:
 
 
 template<>
-void NSESolver::run_preStepping<NSESolver::SolverType::primalSolver>()
+void NSESolver::run_preStepping<NSESolver::primalSolver>()
 {
   cout << "Starting primal solver" << endl;
   a_m = ap_m; L_m = Lp_m; a_c = ap_c; L_c = Lp_c;
@@ -704,7 +725,7 @@ void NSESolver::run_preStepping<NSESolver::SolverType::primalSolver>()
 }
 
 template<>
-void NSESolver::run_preStepping<NSESolver::SolverType::dualSolver>()
+void NSESolver::run_preStepping<NSESolver::dualSolver>()
 {
   c1 = 4.0;
   c1f->init(mesh, c1);
@@ -716,7 +737,7 @@ void NSESolver::run_preStepping<NSESolver::SolverType::dualSolver>()
 }
 
 template <>
-inline void NSESolver::step_preSolve<NSESolver::SolverType::dualSolver>()
+inline void NSESolver::step_preSolve<NSESolver::dualSolver>()
 {
     cout << "eval dual" << endl;
     Up->eval(s);
@@ -730,7 +751,7 @@ inline void NSESolver::step_preSolve<NSESolver::SolverType::dualSolver>()
 }
 
 template <>
-void NSESolver::run_postStepping<NSESolver::SolverType::primalSolver>()
+void NSESolver::run_postStepping<NSESolver::primalSolver>()
 {
   cout << "mean drag: " << mean_drag << endl;
   cout << "total H1primal: " << sqrt(tot_H1primal) << endl;
@@ -742,7 +763,7 @@ void NSESolver::run_postStepping<NSESolver::SolverType::primalSolver>()
 }
 
 template <>
-void NSESolver::run_postStepping<NSESolver::SolverType::dualSolver>()
+void NSESolver::run_postStepping<NSESolver::dualSolver>()
 {
       cout << "Preparing adaptivity" << endl;
       // Adaptive error control
@@ -840,7 +861,7 @@ void NSESolver::run_postStepping<NSESolver::SolverType::dualSolver>()
 }
 
 template <>
-void NSESolver::step_postSolve<NSESolver::SolverType::primalSolver>()
+void NSESolver::step_postSolve<NSESolver::primalSolver>()
 {
   real drag = 0.0, lift = 0.0;
   drag = assembler->assemble(*Md);
@@ -915,7 +936,7 @@ void NSESolver::step_postSolve<NSESolver::SolverType::primalSolver>()
 }
 
 template <>
-void NSESolver::step_postSolve<NSESolver::SolverType::dualSolver>()
+void NSESolver::step_postSolve<NSESolver::dualSolver>()
 {
     cout << "errest" << endl;
     assembler->assemble(eij_m->vector(), *Lrep_m);

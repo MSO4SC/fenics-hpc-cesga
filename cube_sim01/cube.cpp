@@ -49,6 +49,11 @@
 #include <map>
 #include <mpi.h>
 
+// Temporary defines to avoid the need for c++11
+#define constexpr const
+#define nullptr NULL
+
+
 #include "../NSESolver.h"
 
 using namespace dolfin;
