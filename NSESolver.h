@@ -43,6 +43,11 @@
 #include <map>
 #include <mpi.h>
 
+
+// Temporary defines to avoid the need for c++11
+#define constexpr const
+#define nullptr NULL
+
 using namespace dolfin;
 
                                             // join me when C++11
