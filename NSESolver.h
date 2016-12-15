@@ -373,15 +373,21 @@ public:
     virtual ~NSESolver ();
 
     template<SolverType st>
-    void step()
+    real step()
     {
+#warning "TASK: find a better way to do this. Maybe with templates?"
+        if (not solverInitialized)
+        {
+            initSolver<st>();
+            solverInitialized = true;
+        }
         stimer = time();
 
         s = primal_T - t;
 
         umax = u->vector().norm(linf);
         
-        step_preSolve<st>();
+        stepPreSolve<st>();
         
         if(stepcounter >= 100)
         {
@@ -397,9 +403,9 @@ public:
             kf->init(mesh, k);
         }
 
-        solve_system();
+        solveSystem();
 
-        step_postSolve<st>();
+        stepPostSolve<st>();
 
         u0->vector() = u->vector();
         up0->vector() = up->vector();
@@ -408,29 +414,15 @@ public:
         stepcounter++;
         if(stabcounter > 0)
           stabcounter--;
+
+        return t;
     }
 
 //    template <SolverType st = SolverType::primalSolver> // C++11
     template <SolverType st>
-    void run_solver()
+    void runSolver()
     {
-        run_preStepping<st>();
-
-        u->vector() = 0.0;
-        u0->vector() = 0.0;
-        p->vector() = 0.0;
-        p0->vector() = 0.0;
-        up0->vector() = 0.0;
-
-        Rmtot->vector() = 0.0;
-        Rctot->vector() = 0.0;
-        wmtot->vector() = 0.0;
-        wctot->vector() = 0.0;
-        
-        t = 0;
-
-        k = 0.1*hmin;
-        kf->init(mesh, k);
+        initSolver<st>();
 
         // Time-stepping
         while(t <= T)
@@ -438,17 +430,18 @@ public:
             step<st>();
         }
         
-        run_postStepping<st>();
+        runPostStepping<st>();
 
         cout << "Solver done" << endl;
+        solverInitialized = false;
     }
 
     void run()
     {
-//      run_solver<SolverType::primalSolver>(); // C++11
-//      run_solver<SolverType::dualSolver>();   // C++11
-      run_solver<primalSolver>();
-      run_solver<dualSolver>();
+//      runSolver<SolverType::primalSolver>(); // C++11
+//      runSolver<SolverType::dualSolver>();   // C++11
+      runSolver<primalSolver>();
+      runSolver<dualSolver>();
     }
 
     real getT() const {return T;}
@@ -462,22 +455,24 @@ public:
 
 private:
     template <SolverType st>
-    inline void step_preSolve()
+    inline void stepPreSolve()
+    {};
+
+    void commonInit();
+
+    template <SolverType st>
+    void initSolver()
     {};
 
     template <SolverType st>
-    void run_preStepping()
+    void runPostStepping()
     {};
 
     template <SolverType st>
-    void run_postStepping()
+    void stepPostSolve()
     {};
 
-    template <SolverType st>
-    void step_postSolve()
-    {};
-
-    void solve_system()
+    void solveSystem()
     {
       // Fixed-point iteration
       for(int i = 0; i < maxit; i++)
@@ -718,31 +713,56 @@ private:
     real int_errest_gcs = 0;
     
     int sample = 0;
+
+    bool solverInitialized = false;
 };
 
-
-template<>
-void NSESolver::run_preStepping<NSESolver::primalSolver>()
+void NSESolver::commonInit()
 {
-  cout << "Starting primal solver" << endl;
-  a_m = ap_m; L_m = Lp_m; a_c = ap_c; L_c = Lp_c;
-  pde_m = pdep_m; pde_c = pdep_c;
+    u->vector() = 0.0;
+    u0->vector() = 0.0;
+    p->vector() = 0.0;
+    p0->vector() = 0.0;
+    up0->vector() = 0.0;
+
+    Rmtot->vector() = 0.0;
+    Rctot->vector() = 0.0;
+    wmtot->vector() = 0.0;
+    wctot->vector() = 0.0;
+    
+    t = 0;
+
+    k = 0.1*hmin;
+    kf->init(mesh, k);
+
 }
 
 template<>
-void NSESolver::run_preStepping<NSESolver::dualSolver>()
+void NSESolver::initSolver<NSESolver::primalSolver>()
 {
-  c1 = 4.0;
-  c1f->init(mesh, c1);
+    commonInit();
 
-  cout << "Starting dual solver" << endl;
-  a_m = ad_m; L_m = Ld_m; a_c = ad_c; L_c = Ld_c;
-  pde_m = pded_m; pde_c = pded_c;
-  T = dual_T;
+    cout << "Starting primal solver" << endl;
+    a_m = ap_m; L_m = Lp_m; a_c = ap_c; L_c = Lp_c;
+    pde_m = pdep_m; pde_c = pdep_c;
+}
+
+template<>
+void NSESolver::initSolver<NSESolver::dualSolver>()
+{
+    commonInit();
+
+    c1 = 4.0;
+    c1f->init(mesh, c1);
+    
+    cout << "Starting dual solver" << endl;
+    a_m = ad_m; L_m = Ld_m; a_c = ad_c; L_c = Ld_c;
+    pde_m = pded_m; pde_c = pded_c;
+    T = dual_T;
 }
 
 template <>
-inline void NSESolver::step_preSolve<NSESolver::dualSolver>()
+inline void NSESolver::stepPreSolve<NSESolver::dualSolver>()
 {
     cout << "eval dual" << endl;
     Up->eval(s);
@@ -756,7 +776,7 @@ inline void NSESolver::step_preSolve<NSESolver::dualSolver>()
 }
 
 template <>
-void NSESolver::run_postStepping<NSESolver::primalSolver>()
+void NSESolver::runPostStepping<NSESolver::primalSolver>()
 {
   cout << "mean drag: " << mean_drag << endl;
   cout << "total H1primal: " << sqrt(tot_H1primal) << endl;
@@ -768,7 +788,7 @@ void NSESolver::run_postStepping<NSESolver::primalSolver>()
 }
 
 template <>
-void NSESolver::run_postStepping<NSESolver::dualSolver>()
+void NSESolver::runPostStepping<NSESolver::dualSolver>()
 {
       cout << "Preparing adaptivity" << endl;
       // Adaptive error control
@@ -866,7 +886,7 @@ void NSESolver::run_postStepping<NSESolver::dualSolver>()
 }
 
 template <>
-void NSESolver::step_postSolve<NSESolver::primalSolver>()
+void NSESolver::stepPostSolve<NSESolver::primalSolver>()
 {
   real drag = 0.0, lift = 0.0;
   drag = assembler->assemble(*Md);
@@ -941,7 +961,7 @@ void NSESolver::step_postSolve<NSESolver::primalSolver>()
 }
 
 template <>
-void NSESolver::step_postSolve<NSESolver::dualSolver>()
+void NSESolver::stepPostSolve<NSESolver::dualSolver>()
 {
     cout << "errest" << endl;
     assembler->assemble(eij_m->vector(), *Lrep_m);
