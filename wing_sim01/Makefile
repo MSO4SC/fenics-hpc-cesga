@@ -1,4 +1,4 @@
-DEST    = demo
+DEST    = wing
 
 all: $(DEST)
 
@@ -8,7 +8,7 @@ export LIBDIR=/opt/fenics-hpc/source/unicorn
 
 include $(LIBDIR)/Makefile.lib
 
-MYOBJECTS = main.o
+MYOBJECTS = ../main.o
 
 OBJECTS = $(UFC2OBJECTS) $(LIBOBJECTS)
 $(MYOBJECTS) : $(OBJECTS)
