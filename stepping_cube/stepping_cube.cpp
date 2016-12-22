@@ -7,53 +7,6 @@
 // iteration between the momentunm and pressure equations and a do-nothing adaptive
 // method.
 
-#include <dolfin.h>
-#include <dolfin/main/MPI.h>
-#include <dolfin/config/dolfin_config.h>
-#include <dolfin/fem/UFC.h>
-#ifdef ENABLE_UFL 
-#include "../ufc2/NSEMomentum3D.h"
-#include "../ufc2/NSEContinuity3D.h"
-#include "../ufc2/NSEDualMomentum3D.h"
-#include "../ufc2/NSEDualContinuity3D.h"
-#include "../ufc2/NSEErrRepMomentum3D.h"
-#include "../ufc2/NSEErrRepContinuity3D.h"
-#include "../ufc2/Drag3D.h"
-#include "../ufc2/NSEH1.h"
-#include "../ufc2/NSEH12.h"
-#include "../ufc2/NSEH1Momentum3D.h"
-#include "../ufc2/NSEH1Continuity3D.h"
-#include "../ufc2/NSEH1MomentumGlobal3D.h"
-#include "../ufc2/NSEH1ContinuityGlobal3D.h"
-#include "../ufc2/NSEMomentumResidual3D.h"
-#include "../ufc2/NSEContinuityResidual3D.h"
-#include "../ufc2/NSEMomentumResidualGlobal3D.h"
-#include "../ufc2/NSEContinuityResidualGlobal3D.h"
-#include "../ufc2/NSEErrEst.h"
-#include "../ufc2/NSEErrEstGlobal.h"
-#else
-#include "../ufc2/NSEMomentum3D.h"
-#include "../ufc2/NSEContinuity3D.h"
-#endif
-
-#include "../dolfin/NodeNormal.h"
-#include "../dolfin/SpaceTimeFunction.h"
-#include "../dolfin/SlipBC.h"
-
-#include <ostream>
-#include <iomanip>
-#include <cstring>
-#include <sstream>
-#include <string>
-#include <algorithm>
-#include <map>
-#include <mpi.h>
-
-// Temporary defines to avoid the need for c++11
-#define constexpr const
-#define nullptr NULL
-
-
 #include "../NSESolver.h"
 
 using namespace dolfin;
@@ -72,7 +25,8 @@ constexpr real xbody = 0;
 constexpr real ybody = 0;
 constexpr real zbody = 0;
 
-constexpr real tFinal = 5.0;
+constexpr real tInitial = 0;
+constexpr real tFinal = 5;
 
 constexpr real Uin = 1;
 constexpr real Uin_dual = 1;
@@ -367,9 +321,6 @@ int main(int argc, char* argv[])
 
   SlipBoundary sboundary;
 
-#warning "unused variables"
-  DirichletBoundary dboundary;
-
   ThetaDrag thetadrag(mesh);
   ThetaLift thetalift(mesh);
   SlipMarker sm(mesh);
@@ -406,7 +357,14 @@ int main(int argc, char* argv[])
       &bpsim
       );
   solver.setT(tFinal);
-  solver.run();
+
+  real t = tInitial;
+
+  while (t < solver.getT())
+  {
+      t = solver.step<NSESolver::primalSolver>();
+  }
+  solver.runSolver<NSESolver::dualSolver>();
 
   exit(0);
 

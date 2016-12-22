@@ -12,7 +12,7 @@ Unicorn stands for Unified Continuum modeling, where we pose the
 fundamental balance laws for mass, momentum and energy with a general
 Cauchy stress, and allow different constitutive laws chosen by a phase
 marker, for example for a Newtonian fluid and a Neo-Hookean
-solid.. The total model is then solved using the G2 General
+solid. The total model is then solved using the G2 General
 Galerkin/Direct FEM methodology which is based on stabilized FEM and
 goal-oriented adaptive error control.
 
