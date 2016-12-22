@@ -10,10 +10,11 @@ include $(LIBDIR)/Makefile.lib
 
 MYOBJECTS = cube.o
 
-OBJECTS = $(UFC2OBJECTS) $(LIBOBJECTS) $(MYOBJECTS)
+OBJECTS = $(UFC2OBJECTS) $(LIBOBJECTS)
+$(MYOBJECTS) : $(OBJECTS)
 
 clean: cleanLib
 	-rm -f $(MYOBJECTS) $(DEST)
 
-$(DEST): $(OBJECTS)
-	$(CXX) -o $@ $(OBJECTS) $(CFLAGS) $(LIBS)
+$(DEST): $(MYOBJECTS)
+	$(CXX) -o $@ $(OBJECTS) $(MYOBJECTS) $(CFLAGS) $(LIBS)
