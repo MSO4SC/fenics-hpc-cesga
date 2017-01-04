@@ -22,6 +22,8 @@
 
 namespace dolfin
 {
+ namespace unicorn
+ {
 
 //-----------------------------------------------------------------------------
 NodeNormal::NodeNormal(NodeNormal& node_normal) :
@@ -426,8 +428,8 @@ NodeNormal::__compute_normal(Mesh& mesh)
 
       }
       vertex_type = curr_surface;
-      delete[] nref;
-      delete[] normals_offsets;
+      delete nref;
+      delete normals_offsets;
 
       // n_k    = sum_{i=1}^k nS_i
       // tau1_k = |n_{k-1}|^2 nS_k - (n_{k-1} . nS_k ) n_{k-1}
@@ -926,4 +928,4 @@ NodeNormal::__cache_shared_area(Mesh& mesh, BoundaryMesh& boundary)
 //-----------------------------------------------------------------------------
 
 }
-
+}

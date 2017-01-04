@@ -4,16 +4,15 @@
 // Existing code for Dirichlet BC is used
 //
 // Modified by Niclas Jansson, 2008-2012.
-// 
+// Modified by Dang Nguyen
 // First added:  2007-05-01
-// Last changed: 2012-03-04
+// Last changed: 2016-11-21
 
 
 //#include <dolfin.h>
 #include <dolfin/fem/UFC.h>
 #include <dolfin/main/MPI.h>
 #include "dolfin/SlipBC.h"
-
 #include "dolfin/NodeNormal.h"
 
 #include <dolfin/fem/Form.h>
@@ -38,9 +37,16 @@
 
 
 using namespace dolfin;
-//using namespace dolfin::unicorn;
 
 const real stol = 1e-5;
+
+//-----------------------------------------------------------------------------
+void SlipBC::update()
+{
+  node_normal.__compute_normal(mesh);
+  init(*user_sub_domain);
+}
+
 
 //-----------------------------------------------------------------------------
 SlipBC::SlipBC(Mesh& mesh, SubDomain& sub_domain, NodeNormal& Node_normal)

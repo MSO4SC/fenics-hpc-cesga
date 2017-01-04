@@ -1,9 +1,12 @@
 with open("NSEbase.ufl") as f:
   exec(f.read())
 
-# Newton's method Ju_i+1 = Ju_i - F(u_i)
-J = derivative(rd_c, p, p_)
-F = rd_c
+def lin_adjoint(lin_form, reordered_arg):
+    return replace(lin_form, reordered_arg)
 
-a = J
-L = action(J, p) - F
+a = adjoint(derivative(r_c, p))
+F = derivative(r_m, p, p)
+F2 = action(F, v2)
+F3 = derivative(F2, p, q)
+F4 = derivative(F3, v2, u)
+L = -F4 + inner(psi_c, q)*dx + inner(bpsi_c, q)*ds

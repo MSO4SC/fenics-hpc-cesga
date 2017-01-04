@@ -11,14 +11,13 @@
 
 #include <dolfin/common/constants.h>
 #include <dolfin/common/Array.h>
+#include <dolfin/mesh/Mesh.h>
+#include <dolfin/mesh/BoundaryMesh.h>
 #include <dolfin/mesh/MeshFunction.h>
 #include <map>
 
 namespace dolfin
-{
-
-class BoundaryMesh;
-class Mesh;
+{ 
 
 class NodeNormal
 {
@@ -51,10 +50,10 @@ public:
 
   Array<MeshFunction<real> *> const& basis() const;
 
-private:
-
   // Compute normals to the boundary nodes
   void __compute_normal(Mesh& mesh);
+private:
+
 
   void __cache_shared_area(Mesh& mesh, BoundaryMesh& boundary);
 

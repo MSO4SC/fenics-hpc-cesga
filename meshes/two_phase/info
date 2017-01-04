@@ -1,0 +1,6 @@
+Meshes file info:
+
+__1:
+	H = 0.5;
+	h = H/75;
+	h_a = H/15;

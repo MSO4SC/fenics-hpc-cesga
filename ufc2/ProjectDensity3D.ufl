@@ -1,0 +1,5 @@
+with open("NSEbase.ufl") as f:
+  exec(f.read())
+
+a = aP_rho
+L = LP_rho

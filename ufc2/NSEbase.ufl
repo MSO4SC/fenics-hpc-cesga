@@ -6,104 +6,117 @@ ZV = VectorElement("DG", "tetrahedron", 0)
 v = TestFunction(V)
 v2 = Coefficient(V)
 u = Coefficient(V)
+rho = Coefficient(Q)
 up = Coefficient(V)
 q = TestFunction(Q)
 q2 = Coefficient(Q)
+eta = TestFunction(Q)
 p = Coefficient(Q)
-pp = Coefficient(Q)
 nu = Coefficient(Q)
 h = Coefficient(Z)
 k = Coefficient(Z)
+c0 = Coefficient(Z)
 c1 = Coefficient(Z)
 c2 = Coefficient(Z)
-c3 = Coefficient(Z)
 u0 = Coefficient(V)
+rho0 = Coefficient(Q)
 p0 = Coefficient(Q)
-dtu = Coefficient(V)
-n = Coefficient(V)
-sm = Coefficient(Z)
+f = Coefficient(V)
 hmin = Coefficient(Z)
 umean = Coefficient(ZV)
+cv = Coefficient(Z)
+R_sc = Coefficient(Z)
 psi_m = Coefficient(V)
 psi_c = Coefficient(Q)
-bpsi_m = Coefficient(V)
+bpsi_c = Coefficient(Q)
 phi_m = Coefficient(V)
 phi_c = Coefficient(Q)
 z = TestFunction(Z)
-zv = TestFunction(ZV)
 zz = Coefficient(Z)
-ei = Coefficient(Z)
-cv = Coefficient(Z)
-Rm = Coefficient(Z)
-Rc = Coefficient(Z)
-wm = Coefficient(Z)
-wc = Coefficient(Z)
+
+#Mesh Velocity Variables
+w0 = Coefficient(V)
+w  = Coefficient(V)
+wm = Coefficient(V)
+
+#weak BDCs
+sm = Coefficient(Z)
+n = Coefficient(V)
 
 u_ = TrialFunction(V)
+rho_ = TrialFunction(Q)
 p_ = TrialFunction(Q)
 
+rho_i0 = Coefficient(Q)
+
 icv = 1./cv
-
 um = 0.5*(u + u0)
+rhom = 0.5*(rho + rho0)
 
-eps = 0.01
-C_av = 0.1*(eps + (abs(u[0]) + abs(u[1]) + abs(u[2])))
+#Mesh Velocity Variable
+wm = 0.5*(w + w0)
+
 
 kk = 0.25 * hmin
-d = c1 * h**(2./2.)
-d32 = C_av * c2 * h**(3./2.)
-#d32 = 0.1 * c1 * h**(3./2.)
+#d = c1*h
+#d = c1 * 0.5 / sqrt( 1.0 / kk**2 + inner(umean, umean) / h**2)
+d = c0*h**(3./2.)
+dd = h**2
+dd3 = h**(3./2.)
 
-R = [grad(p) + grad(um)*um, div(um)]
-R_v = [grad(v)*um, div(v)]
-R_q = [grad(q), 0]
+rhoMax = 1.0
+#rhoMin = rhoMax
+rhoMin = 0.001
 
-LS_u = d*(sum([ inner(R[ii], R_v[ii]) for ii in range(0, 2) ]))
-LS_p = d*(sum([ inner(R[ii], R_q[ii]) for ii in range(0, 2) ]))
+one = as_vector((1.0, 1.0, 1.0))
 
-#Rd = [grad(p) + grad(um)*up, div(um)]
-#Rd_v = [grad(v)*up, div(v)]
-#Rd_q = [grad(q), 0]
+beta = (rhoMin - rhom)*(rhoMax - rhom)
+gamma = abs(grad(rhom)[0]) + abs(grad(rhom)[1]) + abs(grad(rhom)[2])
+beta2 = 0.2*1./(0.1*gamma + 1.)*beta
 
-#LSd_u = d*(sum([ inner(Rd[ii], Rd_v[ii]) for ii in range(0, 2) ]))
-#LSd_p = d*(sum([ inner(Rd[ii], Rd_q[ii]) for ii in range(0, 2) ]))
+beta_rho = (rhoMin - rhom)*-rhom
+gamma_rho = abs(grad(rhom)[0]) + abs(grad(rhom)[1]) + abs(grad(rhom)[2])
+beta2_rho = 0.2*1./(0.1*gamma_rho + 1.)*beta_rho
+
+beta_eta = (rhoMin - rhom)*-eta
+gamma_eta = abs(grad(rhom)[0]) + abs(grad(rhom)[1]) + abs(grad(rhom)[2])
+beta2_eta = 0.2*1./(0.1*gamma_eta + 1.)*beta_eta
+
+R = [rhom*grad(um)*um - rhom*f, inner(um, grad(rhom)) + inner(one, grad(beta2_rho)), div(um)]
+R_v = [rhom*grad(v)*um, inner(v, grad(rhom)), div(v)]
+R_eta = [eta*grad(um)*um, inner(um, grad(eta)) + inner(one, grad(beta2_eta)), 0]
+R_q = [grad(q), 0, 0]
+
+LS_u = d*(inner(R[0], R_v[0]) + inner(R[1], R_v[1]) + inner(R[2], R_v[2]))  
+LS_rho = d*(inner(R[0], R_eta[0]) + inner(R[1], R_eta[1]) + inner(R[2], R_eta[2]))  
+LS_p = d*(inner(R[0] + grad(p), R_q[0]) + inner(R[1], R_q[1]) + inner(R[2], R_q[2]))
+
+C_av = (abs(u[0]) + abs(u[1]) + abs(u[2]))
+
+stab1 = c1
+stab2 = c2
+alpha = 1.0
+
+AV_u = C_av*(stab1*dd*R_sc + stab2*dd3)*inner(grad(um), grad(v))
+AV_rho = C_av*(stab1*dd*R_sc + stab2*dd3)*inner(grad(rhom), grad(eta))
 
 
-rs_m = (nu*inner(grad(u), grad(v)) + inner(grad(p) + grad(u)*u, v))*dx
-rs_c = (inner(div(u), q))*dx
 
-rmp_m = replace(rs_m, { u: um })
-rmp_c = replace(rs_c, { u: um })
+# Weak residuals of variable-density incompressible model
+#with mesh velocity wm
+r_m = (abs(rhom)*inner(u - u0, v)/k + ((nu*inner(grad(um), grad(v)) + inner(grad(p) + rhom*grad(um)*(um-wm) - rhom*f, v))))*dx + LS_u*dx + AV_u*dx + sm*(1./h)*inner(um-wm, n)*inner(v, n)*ds
+r_d = (inner(rho - rho0, eta)/k + (inner(um-wm, grad(rhom))*eta))*dx - beta2*inner(one, grad(eta))*dx + LS_rho*dx + AV_rho*dx
 
-r_m = (inner(u - u0, v)/k)*dx + rmp_m + sm*(1./h)*inner(um, n)*inner(v, n)*ds + LS_u*dx
-r_c = (2*k*inner(grad(p - p0), grad(q)))*dx + rmp_c + hmin*h*p*q*dx + LS_p*dx
 
-rsp_m = replace(rs_m, { u: up, p: pp })
-rsp_c = replace(rs_c, { u: up, p: pp }) + hmin*h*pp*q*dx
 
-rds_m = adjoint(derivative(rsp_m, up, u_), (v, u_))
-rds_m = action(rds_m, u)
-rds_c = adjoint(derivative(rsp_c, pp, p_), (q, p_))
-rds_c = action(rds_c, p)
+r_c = (alpha*inner(grad(p - p0), grad(q)) + inner(div(u), q))*dx + LS_p*dx
 
-# Adjoint cross-component terms
-rdsx_m = derivative(action(rds_c, p), up, v)
-rdsx_c = derivative(action(rds_m, u), pp, q)
+LR_sc = z*icv*abs((rho - rho0)/k + inner(um, grad(rhom)))*dx + \
+         z*icv*abs((rhom*(u - u0)/k + grad(p) + R[0])[0])*dx + \
+         z*icv*abs((rhom*(u - u0)/k + grad(p) + R[0])[1])*dx + \
+         z*icv*abs((rhom*(u - u0)/k + grad(p) + R[0])[2])*dx
 
-Ld_m = inner(psi_m, v)*dx + inner(bpsi_m, v)*ds
-Ld_c = inner(psi_c, q)*dx
 
-#versori = as_vector((1,0,0))
-#versorj = as_vector((0,1,0))
-
-rlds_m = rds_m + rdsx_m - Ld_m
-rlds_c = rds_c + rdsx_c - Ld_c
-
-#rd_m = rlds_m
-#rd_c = rlds_c
-
-rldmp_m = replace(rlds_m, { u: um })
-rldmp_c = replace(rlds_c, { u: um })
-
-rd_m = (inner(u - u0, v)/k)*dx + rldmp_m + LS_u*dx + d32*inner(grad(um), grad(v))*dx
-rd_c = (2*k*inner(grad(p - p0), grad(q)))*dx + rldmp_c + LS_p*dx + d32*inner(grad(p), grad(q))*dx
+# Projection of initial condition for rho
+aP_rho = inner(rho_, eta)*dx + stab1*dd*inner(grad(rho_), grad(eta))*dx
+LP_rho = inner(rho_i0, eta)*dx

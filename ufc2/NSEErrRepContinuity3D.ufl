@@ -1,16 +1,5 @@
 with open("NSEbase.ufl") as f:
   exec(f.read())
 
-v = phi_m
 q = phi_c
-um = up
-
-R = [grad(p) + grad(um)*um, div(um)]
-R_v = [grad(v)*um, div(v)]
-R_q = [grad(q), 0]
-
-LS_u = d*(sum([ inner(R[ii], R_v[ii]) for ii in range(0, 2) ]))
-LS_p = d*(sum([ inner(R[ii], R_q[ii]) for ii in range(0, 2) ]))
-
 L = z*(inner(div(um), q))*dx
-#L = z*LS_p*dx

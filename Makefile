@@ -1,20 +1,23 @@
+CFLAGS  = `pkg-config --cflags dolfin`
+LIBS    = `pkg-config --libs dolfin`
+CXX     = `pkg-config --variable=compiler dolfin` -g
+
 DEST    = demo
+
+
+OBJECTS = main.o MeshBC.o  LaplacianSmoother.o NodeNormal.o SpaceTimeFunction.o SlipBC.o  ufc2/NSEMomentum3D.o ufc2/NSEDensity3D.o ufc2/NSEContinuity3D.o ufc2/ProjectDensity3D.o ufc2/NSEResidualSC3D.o ufc2/NSEDualMomentum3D.o ufc2/NSEDualContinuity3D.o ufc2/NSEErrRepMomentum3D.o ufc2/NSEErrRepContinuity3D.o ufc2/Drag3D.o  ufc2/Laplacian2D.o  ufc2/Laplacian3D.o  ufc2/Poisson.o ufc2/L2ProjPfromM.o    ufc2/L2ProjUfromM2D.o  ufc2/L2ProjUfromM.o   
+
+
 
 all: $(DEST)
 
-# this is the path to unicorn source
-# it will be the path to install directory when install will be available
-export LIBDIR=/opt/fenics-hpc/source/unicorn
+install:
 
-include $(LIBDIR)/Makefile.lib
+clean:
+	-rm -f *.o core *.core $(OBJECTS) $(DEST)
 
-MYOBJECTS = main.o
+$(DEST): $(OBJECTS)
+	$(CXX) -o $@ $(OBJECTS) $(CFLAGS) $(LIBS)
 
-OBJECTS = $(UFC2OBJECTS) $(LIBOBJECTS)
-$(MYOBJECTS) : $(OBJECTS)
-
-clean: cleanLib
-	-rm -f $(MYOBJECTS) $(DEST)
-
-$(DEST): $(MYOBJECTS)
-	$(CXX) -o $@ $(OBJECTS) $(MYOBJECTS) $(CFLAGS) $(LIBS)
+.cpp.o:
+	$(CXX) $(CFLAGS) -c $< -o $@

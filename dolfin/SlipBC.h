@@ -11,16 +11,10 @@
 #ifndef __SLIPBC_H
 #define __SLIPBC_H
 
-//#include <dolfin/common/common_includes.h>
-#include "NodeNormal.h"
-#include <dolfin/fem/BoundaryCondition.h>
-#include <dolfin/fem/SubSystem.h>
-#include <dolfin/la/Matrix.h>
-#include <dolfin/la/Vector.h>
-
-#include <ufc.h>
-
 #include <set>
+#include <dolfin.h>
+#include "NodeNormal.h"
+
 
 
 namespace dolfin
@@ -32,8 +26,6 @@ namespace dolfin
   class Form;
   class GenericMatrix;
   class GenericVector;
-  //namespace unicorn
-  //{      
     class SlipBC : public BoundaryCondition
     {
     public:
@@ -56,7 +48,8 @@ namespace dolfin
       
       /// Destructor
       ~SlipBC();
-      
+     
+      void update();
       /// Apply boundary condition to linear system
       void apply(GenericMatrix& A, GenericVector& b, const Form& form);
       
@@ -130,8 +123,8 @@ namespace dolfin
       BoundaryMesh* boundary;
       MeshFunction<uint> *cell_map, *vertex_map;
     };
-  //}
-}
+  }
+
 
 
 #endif

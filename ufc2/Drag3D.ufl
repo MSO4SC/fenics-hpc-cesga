@@ -1,10 +1,10 @@
+
 cell = "tetrahedron"
 
 V = VectorElement("CG", cell, 1)
 Q = FiniteElement("CG", cell, 1)
-ZV = VectorElement("DG", "tetrahedron", 0)
 
 n   = Coefficient(V)
-phi = Coefficient(ZV)
+phi = Coefficient(V)
 P   = Coefficient(Q)
 M =  P * dot(phi,n) * ds
