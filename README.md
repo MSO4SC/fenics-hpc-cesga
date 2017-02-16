@@ -1,5 +1,7 @@
 fenics-hpc-cesga
 ===================
+
+[![Join the chat at https://gitter.im/MSO4SC/fenics-hpc-cesga](https://badges.gitter.im/MSO4SC/fenics-hpc-cesga.svg)](https://gitter.im/MSO4SC/fenics-hpc-cesga?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 Files to compile and execute FEniCS HPC in Finis Terrae II (CESGA). - http://www.fenicsproject.org
 
 Install
