@@ -44,6 +44,8 @@ source /usr/lib64/xml2Conf.sh
 
 # DOLFIN-HPC
 cd dolfin-hpc
+cp /usr/share/aclocal/pkg.m4 m4/
+cp /usr/share/aclocal/libxml.m4 m4/
 sh regen.sh
 CC=gcc CXX=g++ CFLAGS="" CXXFLAGS="" ./configure --prefix=$PREFIX --with-pic --enable-function-cache --enable-optimize-p1 --disable-boost-tr1 --with-parmetis --with-petsc=/opt/cesga/petsc/3.7.0/gcc/5.3.0/impi/5.1/ --enable-mpi --enable-mpi-io --disable-progress-bar --disable-xmltest --enable-ufl
 make -j 8 install
