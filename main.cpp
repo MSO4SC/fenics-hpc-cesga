@@ -3,6 +3,7 @@
 // Modified by Daniel Castanon Quiroz
 // Last changed: 2017-01-06
 
+
 // Licensed under the GNU LGPL Version 2.1.
 //
 // This program solves the incompressible Navier-Stokes equations using
@@ -53,6 +54,7 @@
 
 
 #include <ostream>
+#include <iostream>
 #include <iomanip>
 #include <cstring>
 #include <sstream>
@@ -106,15 +108,15 @@ const real zmax =  4.0;
 const real rhoMin = 1.0e-3;//min density: if this is  modified, it  needs to be modified in ufc2/NSEbase.ufl as well
 const real rhoMax = 1.0;   //max density: if this is  modified, it  needs to be modified in ufc2/NSEbase.ufl as well
 
-real obstacle_yvel   =   -0.8;//Initial velocity  of the obstacle (immersed body) in Y
-const real obstacle_rho   =   0.5;//density   of the obstacle
+real obstacle_yvel   = 0.0;//Initial velocity  of the obstacle (immersed body) in Y
+const real obstacle_rho   =   0.55;//density   of the obstacle
 const real obstacle_vol   =   std::pow(0.5,3);//volume of the obstacle
 const real gravity = -9.81;
 
 
 const  real T = 1.0;//Final time
 const  real primal_T =T;
-const  int  no_samples = 100;//total of *.bin samples in [0,T]
+const  int  no_samples = 200;//total of *.bin samples in [0,T]
 const  real nu = 1.0e-5;//viscosity in Momentum Equation
 const  real dual_T = T/2.0;  /*Dual functionality does not work*/
 
@@ -895,13 +897,14 @@ int main(int argc, char **argv)
       w0x=wx;
       w0x.apply();
       w0.sync_ghosts();
-      lsmoother->smooth(wx, true, true);            
+      lsmoother->smooth(wx, true, false);            
       delete lsmoother;
     }
     /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-  
+    NodeNormal nodenormal(mesh);
+    LaplacianSmoother *lsmoother;
     // Time-stepping
     while(t <= T)
     {
@@ -940,7 +943,7 @@ int main(int argc, char **argv)
       real stimer = time();
 
 
-
+      
       // Fixed-point iteration
       for(int i = 0; i < maxit; i++)
       {
@@ -973,7 +976,7 @@ int main(int argc, char **argv)
 	rd_p.vector() = p.vector();
 	rd_p.vector() -= p0.vector();
 	rd_p_norm = rd_p.vector().norm(l2);
- 
+
 	cout << "Iteration info: " << "Unorm: " << U.vector().norm(linf) << " Rhonorm: " << Rho.vector().norm(linf) << " Pnorm: " << P.vector().norm(linf) << " Uincr: " <<  rd_u_norm / u.vector().norm(l2) << " Rhoincr: " << rd_rho_norm / rho.vector().norm(l2) << " Pincr: " <<  rd_p_norm / p.vector().norm(l2) << " k: " << k << " step: " << stepcounter << " t: " << t << " timer: " << time() - timer << endl;
 	cout << "iteration: " << i << endl;
 	iteration0 = i;
@@ -1012,29 +1015,40 @@ int main(int argc, char **argv)
 
       }
       
-
+      
       //DCQ      
       //Compute  Total Force in Y-direction on the obstacle
       real  yforce= lift + obstacle_mass*gravity;
       obstacle_yvel  = obstacle_yvel + k*yforce/obstacle_mass; //Newton's 2nd Law and Euler'scheme
-      cout << "Total YForce: " << yforce << " t = " << t << endl;
-      cout << "Obstacle vel: " << obstacle_yvel << " t = " << t << endl;
+      if(dolfin::MPI::processNumber() == 0){
+	//setprecision only works if everything is from stdlib
+	std::cout <<std::setprecision(6) << "Total YForce: " << yforce << " t = "          << t << std::endl;
+	std::cout <<std::setprecision(6) << "Obstacle vel: " << obstacle_yvel << " t = "   << t << std::endl;
+      }
 
       /* fill the boundary conditions*/
+      
       cout << "Updating Velocity Mesh" << endl;
       setMeshVelocity(mesh,MeshBoundaryMarker, MeshVelBoundaryFunction,
 		      MeshVelBoundaryFunctionx,CG1vform,CG1vindex,boundary, vertex_map,
 		      0.0, obstacle_yvel, 0.0);
+    
 
       //save previous velocity
       w0x=wx;
       w0x.apply();
       w0.sync_ghosts();
       //smooth and move mesh
-      NodeNormal nodenormal(mesh);
-      LaplacianSmoother *lsmoother= new LaplacianSmoother(mesh,  MeshBoundaryMarker, &MeshVelBoundaryFunctionx, nodenormal);
       cout << "Calling smoother at t: "<< t <<", stepcounter: "<<stepcounter<<endl;
-      lsmoother->smooth(wx, true, true);            
+      if(stepcounter == 0)
+	{
+	  lsmoother = new LaplacianSmoother(mesh,  MeshBoundaryMarker, &MeshVelBoundaryFunctionx, nodenormal);
+	  lsmoother->smooth(wx, true, false);            
+	}
+      else
+	lsmoother->smooth(wx, false, false);    
+
+
       computeX(X, mesh, CG1vform, CG1vindex );
       Xtmpx = wx;
       Xtmpx *= k; 
@@ -1042,7 +1056,6 @@ int main(int argc, char **argv)
       Xtmpx.apply();
       Xtmp.sync_ghosts();
       deform(Xtmp, mesh, CG1vform, CG1vindex);	
-      delete lsmoother;
       nn.__compute_normal(mesh);
       ComputeTangentialVectors(mesh, (Vector&)tau_1.vector(), (Vector&)tau_2.vector(), (Vector&)normal.vector(), ap_m, nn);
 
@@ -1097,9 +1110,11 @@ int main(int argc, char **argv)
       stepcounter++;
     }
     //Free resouces of Moving BD
+    delete lsmoother;
     delete idx; 
     delete id; 
     delete XX_block;
+
 
     
     cout << "Solver done" << endl;

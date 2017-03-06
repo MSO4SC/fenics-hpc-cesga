@@ -26,3 +26,14 @@ fluid velocity is not zero at the outside boundary.
    The meshes in meshes/one_phase are for development and quick experimentation. In both cases the gmsh
    file  (.geo) is also distributed.
 
+#############################################################################################
+#Changes in Version 1.1
+
+
+Added: jjannson Updates,  
+       using std::set_precision()
+       Makefile.lib file
+       Makefile
+
+Erase: ufc2/ .cpp .h files
+

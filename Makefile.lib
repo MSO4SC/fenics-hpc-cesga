@@ -1,0 +1,24 @@
+# This file should be included by Makefiles of executables that want to
+# use the unicorn library
+
+CFLAGS  = `pkg-config --cflags dolfin` -I$(UNICORNLIBDIR)
+LIBS    = `pkg-config --libs dolfin`
+CXX     = `pkg-config --variable=compiler dolfin` -g
+
+FFCFLAGS = -O -r quadrature -fsplit -l dolfin
+
+LIBDIR = $(UNICORNLIBDIR)
+
+%.cpp: %.ufl
+	cd $(LIBDIR)/ufc2 && ffc $(FFCFLAGS) $(notdir $<) > /dev/null
+
+UFC2OBJECTS = $(LIBDIR)/ufc2/Drag3D.o $(LIBDIR)/ufc2/Laplacian2D.o $(LIBDIR)/ufc2/Laplacian3D.o $(LIBDIR)/ufc2/NSEContinuity2D.o $(LIBDIR)/ufc2/NSEContinuity3D.o $(LIBDIR)/ufc2/NSEDensity3D.o $(LIBDIR)/ufc2/NSEDualContinuity3D.o $(LIBDIR)/ufc2/NSEDualMomentum3D.o $(LIBDIR)/ufc2/NSEErrRepContinuity3D.o $(LIBDIR)/ufc2/NSEErrRepMomentum3D.o $(LIBDIR)/ufc2/NSEMomentum2D.o $(LIBDIR)/ufc2/NSEMomentum3D.o $(LIBDIR)/ufc2/NSEResidualSC3D.o $(LIBDIR)/ufc2/Poisson.o $(LIBDIR)/ufc2/ProjectDensity3D.o $(LIBDIR)/ufc2/L2ProjUfromM2D.o  $(LIBDIR)/ufc2/L2ProjPfromM.o    $(LIBDIR)/ufc2/L2ProjUfromM.o   
+
+
+LIBOBJECTS = $(LIBDIR)/NodeNormal.o $(LIBDIR)/SpaceTimeFunction.o $(LIBDIR)/SlipBC.o $(LIBDIR)/MeshBC.o   $(LIBDIR)/LaplacianSmoother.o 
+
+cleanLib:
+	-rm -f core *.core $(LIBOBJECTS) $(UFC2OBJECTS) $(UFC2OBJECTS:.o=.cpp) $(UFC2OBJECTS:.o=.h)
+
+.cpp.o:
+	$(CXX) $(CFLAGS) -c $< -o $@

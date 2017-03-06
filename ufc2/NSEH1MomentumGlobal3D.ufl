@@ -1,9 +1,0 @@
-with open("NSEbase.ufl") as f:
-  exec(f.read())
-
-dtu = (u - u0)/k
-I = inner(grad(u), grad(u)) + inner(dtu, dtu)
-#L = inner(z, abs(sqrt(I)))*dx
-#M = icv*abs(sqrt(h))*wm*dx
-L = inner(z, h*I)*dx
-M = h*I*dx

@@ -1,8 +1,0 @@
-with open("NSEbase.ufl") as f:
-  exec(f.read())
-
-I = R[1]
-#L = inner(z, abs(sqrt(inner(I, I))))*dx
-#M = icv*abs(sqrt(h))*Rc*dx
-L = inner(z, inner(I, I))*dx
-M = icv*abs(sqrt(abs(h)))*abs(sqrt(abs(Rc)))*dx
