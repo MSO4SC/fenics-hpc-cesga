@@ -1022,6 +1022,7 @@ int main(int argc, char **argv)
       obstacle_yvel  = obstacle_yvel + k*yforce/obstacle_mass; //Newton's 2nd Law and Euler'scheme
       if(dolfin::MPI::processNumber() == 0){
 	//setprecision only works if everything is from stdlib
+
 	std::cout <<std::setprecision(6) << "Total YForce: " << yforce << " t = "          << t << std::endl;
 	std::cout <<std::setprecision(6) << "Obstacle vel: " << obstacle_yvel << " t = "   << t << std::endl;
       }
