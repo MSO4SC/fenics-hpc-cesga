@@ -51,10 +51,10 @@ do
     ( srun -n $M ./demo > log1 2> log2 < /dev/null )
 
     # Postprocess the solution into ParaView files
-    srun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 200 -s velocity -f 10  1> log.pp1 2> log.ppe1 &
-    srun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 1000 -s dvelocity -f 10  1> log.pp2 2> log.ppe2 &
-    srun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 1000 -s pressure -f 10 1> log.pp3 2> log.ppe3 &
-    srun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 1000 -s dpressure -f 10 1> log.pp4 2> log.ppe4 &
+    srun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 200 -s velocity  -f 10 1> log.pp1 2> log.ppe1 &
+    srun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 200 -s dvelocity -f 10 1> log.pp2 2> log.ppe2 &
+    srun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 200 -s pressure  -f 10 1> log.pp3 2> log.ppe3 &
+    srun -n 1 ./dolfin_post -m mesh_out.bin -t vtk -n 200 -s dpressure -f 10 1> log.pp4 2> log.ppe4 &
     wait
 
     # Prepare for the next adaptive iteration
