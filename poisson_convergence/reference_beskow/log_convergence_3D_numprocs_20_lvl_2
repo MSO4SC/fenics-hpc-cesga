@@ -1,0 +1,35 @@
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Input file reading (meshes/cube_level_2.bin) took : 0.440000 
+Total number of vertices : 42461
+hmin hmax computation took : 0.000000
+hmin : 0.055902 hmax : 0.055902
+Assembling A took : 0.040000
+Assembling b took : 0.020000
+Applying boundary conditions to linear system.
+Applying BCs took : 0.000000
+Solving linear system of size 42461 x 42461 (Krylov solver).
+Krylov solver (gmres, bjacobi) converged in 100 iterations.
+Solving took : 0.030000
+Error in (0.49, 0.49, 0.49) : 0.00409781
+Writing pvd file took : 0.040000
+Writing bin file took : 0.000000
+Application 8275885 resources: utime ~15s, stime ~3s, Rss ~25944, inblocks ~71011, outblocks ~172351

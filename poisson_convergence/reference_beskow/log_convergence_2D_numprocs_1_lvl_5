@@ -1,0 +1,16 @@
+Initializing DOLFIN version 0.8.4-hpc.
+Input file reading (meshes/square_level_5.bin) took : 0.000000 
+Total number of vertices : 807415840
+hmin hmax computation took : 0.000000
+hmin : 0.012500 hmax : 0.012500
+Assembling A took : 0.040000
+Assembling b took : 0.010000
+Applying boundary conditions to linear system.
+Applying BCs took : 0.000000
+Solving linear system of size 12961 x 12961 (Krylov solver).
+Krylov solver (gmres, ilu) converged in 417 iterations.
+Solving took : 0.220000
+Error in (0.49, 0.49) : 0.000207921
+Writing pvd file took : 0.060000
+Writing bin file took : 0.000000
+Application 8275875 resources: utime ~1s, stime ~0s, Rss ~24088, inblocks ~61801, outblocks ~167856

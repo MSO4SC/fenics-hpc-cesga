@@ -1,0 +1,47 @@
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Initializing DOLFIN version 0.8.4-hpc.
+Input file reading (meshes/cube_level_4.bin) took : 1.060000 
+Total number of vertices : 132921
+hmin hmax computation took : 0.000000
+hmin : 0.037500 hmax : 0.037500
+Assembling A took : 0.120000
+Assembling b took : 0.050000
+Applying boundary conditions to linear system.
+Applying BCs took : 0.010000
+Solving linear system of size 132921 x 132921 (Krylov solver).
+Krylov solver (gmres, bjacobi) converged in 150 iterations.
+Solving took : 0.070000
+Error in (0.49, 0.49, 0.49) : 0.00238649
+Writing pvd file took : 0.090000
+Writing bin file took : 0.020000
+Application 8275888 resources: utime ~52s, stime ~8s, Rss ~48580, inblocks ~94656, outblocks ~186389
