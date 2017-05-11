@@ -1,0 +1,4 @@
+[submodule "unicorn"]
+	path = unicorn
+	url = https://bitbucket.org/fenics-hpc/unicorn.git
+	branch = unicorn_var_den_ale
