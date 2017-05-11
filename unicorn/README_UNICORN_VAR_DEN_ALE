@@ -1,0 +1,39 @@
+//////////////////////////////////////////////////////////////////////////////////////////////
+/*********************************************************************************************
+//Description of the Program:
+
+This code solves two phase flow with ALE when an solid body is immersed with an initial velocity.
+
+1) The solid body moves accordingly with Newton's Second law only in the Y-Direction. 
+So it suffices to compute the lift force each time, and move the solid body accordingly.
+
+2)  Slip Boundaries  are imposed weakly in the  ufc/NSEbase.ufl  file
+    and are equal to the mesh velocity in all boundaries (interior and exterior).
+
+3) The immersed solid is a cube centered at the origin and with ratio 0.5  (in each axis, not diagonally)
+
+4) The whole domain is a cube  centered at the origin and with ratio 8.0  (in each axis, not diagonally)
+
+5) **Important: the computional domain needs to be big to have zero slip conditions at the outside boundary.
+If not is possible that the whole mesh moves, i.e. the LaplacianSmoother moves all  vertices, and the
+fluid velocity is not zero at the outside boundary.
+
+6) In the class InitialDensity we set how the densities are at t=0.
+
+7) Note about meshes:
+   in the directories meshes/one_phase and meshes/two_phase the same computational domain is meshed.
+   However, the one in the two_phase directory has 500,000 cells, and is meshed properly for this problem.
+   The meshes in meshes/one_phase are for development and quick experimentation. In both cases the gmsh
+   file  (.geo) is also distributed.
+
+#############################################################################################
+#Changes in Version 1.1
+
+
+Added: jjannson Updates,  
+       using std::set_precision()
+       Makefile.lib file
+       Makefile
+
+Erase: ufc2/ .cpp .h files
+

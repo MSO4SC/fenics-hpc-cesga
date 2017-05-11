@@ -1,0 +1,4 @@
+with open("NSEbase.ufl") as f:
+  exec(f.read())
+
+L = LR_sc

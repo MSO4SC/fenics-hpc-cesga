@@ -1,0 +1,31 @@
+V = VectorElement("CG", "triangle", 1)
+Q = FiniteElement("CG", "triangle", 1)
+Z = FiniteElement("DG", "triangle", 0)
+
+v = TestFunction(V)
+u = Coefficient(V)
+q = TestFunction(Q)
+p = Coefficient(Q)
+nu = Coefficient(Q)
+h = Coefficient(Z)
+k = Coefficient(Z)
+u0 = Coefficient(V)
+p0 = Coefficient(Q)
+
+u_ = TrialFunction(V)
+p_ = TrialFunction(Q)
+
+um = 0.5*(u + u0)
+#p = p_
+
+d = 4*h
+
+r_m = inner(u - u0, v)*dx + k*((nu*inner(grad(um), grad(v)) + inner(grad(p) + grad(um)*um, v)) + d*inner(grad(p) + grad(um)*um, grad(um)*v) + d*inner(div(um), div(v)))*dx
+r_c = 2*k*inner(p - p0, q)*dx + (div(um)*q)*dx + d*inner(grad(p) + grad(um)*um, grad(q))*dx + d*inner(p, q)*dx
+
+# Newton's method Ju_i+1 = Ju_i - F(u_i)
+J = derivative(r_c, p, p_)
+F = r_c
+
+a = J
+L = action(J, p) - F

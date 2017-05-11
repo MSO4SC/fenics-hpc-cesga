@@ -1,0 +1,5 @@
+with open("NSEbase.ufl") as f:
+  exec(f.read())
+
+q = phi_c
+L = z*(inner(div(um), q))*dx

@@ -1,0 +1,5 @@
+with open("NSEbase.ufl") as f:
+  exec(f.read())
+
+v = phi_m
+L = z*(inner(u - u0, v)/k + ((nu*inner(grad(um), grad(v)) + inner(grad(um)*um, v)) - inner(p, div(v))))*dx
