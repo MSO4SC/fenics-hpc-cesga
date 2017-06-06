@@ -25,6 +25,10 @@ export PKG_CONFIG_PATH=$PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH
 export PATH=$PREFIX/bin:$PATH
 export PYTHONPATH=$PREFIX/lib64/python2.6/site-packages
 
+wget http://www.csc.kth.se/~jjan/hpfem2016/fenics-hpc_hpfem.zip
+unzip fenics-hpc_hpfem.zip
+cd fenics-hpc_hpfem
+
 # UFC
 cd ufc2-hpc
 rm CMakeCache.txt 
@@ -42,12 +46,24 @@ done
 
 source /usr/lib64/xml2Conf.sh
 
+mkdir gts
+cd gts
+wget pkgs.fedoraproject.org/lookaside/pkgs/gts/gts-snapshot-121130.tar.gz/023ebb6b13b8707534182a3ef0d12908/gts-snapshot-121130.tar.gz
+tar xzvf gts-snapshot-121130.tar.gz
+cd gts-snapshot-121130
+sed -i "/s/Requires: glib-2.0,gthread-2.0,gmodule-2.0/Requires: glib-2.0/g" gts.pc.in
+./configure --prefix=$PREFIX --enable-static --disable-shared --with-glib-prefix=$PREFIX --with-pic
+make install
+make
+cd ../../
+
+
 # DOLFIN-HPC
 cd dolfin-hpc
 cp /usr/share/aclocal/pkg.m4 m4/
 cp /usr/share/aclocal/libxml.m4 m4/
 sh regen.sh
-CC=gcc CXX=g++ CFLAGS="" CXXFLAGS="" ./configure --prefix=$PREFIX --with-pic --enable-function-cache --enable-optimize-p1 --disable-boost-tr1 --with-parmetis --with-petsc=/opt/cesga/petsc/3.7.0/gcc/5.3.0/impi/5.1/ --enable-mpi --enable-mpi-io --disable-progress-bar --disable-xmltest --enable-ufl
+CC=gcc CXX=g++ CFLAGS="-O2" CXXFLAGS="-O2" ./configure --prefix=$PREFIX --with-pic --disable-boost-tr1 --with-parmetis --with-petsc=/opt/cesga/petsc/3.7.0/gcc/5.3.0/impi/5.1/ --enable-mpi --enable-mpi-io --disable-progress-bar --disable-xmltest --enable-ufl --with-gts
 make -j 8 install
 cd ..
 cp -av dolfin-hpc/site-packages/dolfin_utils $PREFIX/lib64/python2.6/site-packages

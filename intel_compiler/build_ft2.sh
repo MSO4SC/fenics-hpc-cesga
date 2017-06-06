@@ -93,11 +93,18 @@ cd $FENICS_HPC_SRC_DIR/dolfin-hpc
 cp /usr/share/aclocal/pkg.m4 m4/
 cp /usr/share/aclocal/libxml.m4 m4/
 ./regen.sh
-./configure --prefix=$PREFIX --with-pic --enable-function-cache --enable-optimize-p1 --disable-boost-tr1 \
+
+./configure --prefix=$PREFIX --with-pic  --disable-boost-tr1 \
                              --with-parmetis --with-petsc=/opt/cesga/petsc/3.7.5/intel/2016/impi/5.1/opt \
-                             --enable-openmp --enable-mpi --enable-mpi-io \
+                             --enable-mpi --enable-mpi-io \
                              --disable-progress-bar --disable-xmltest \
                              --enable-ufl --with-gts
+
+#./configure --prefix=$PREFIX --with-pic --enable-function-cache --enable-optimize-p1 --disable-boost-tr1 \
+#                             --with-parmetis --with-petsc=/opt/cesga/petsc/3.7.5/intel/2016/impi/5.1/opt \
+#                             --enable-openmp --enable-mpi --enable-mpi-io \
+#                             --disable-progress-bar --disable-xmltest \
+#                             --enable-ufl --with-gts
 make install -j 8
 
 cp -av site-packages/dolfin_utils $PYP
