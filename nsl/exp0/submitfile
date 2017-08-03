@@ -1,0 +1,11 @@
+#PBS -N exp0
+#PBS -l walltime=0:30:00,nodes=1:ppn=24
+
+##PBS -m abe
+#PBS -v KRB5CCNAME
+cd $PBS_O_WORKDIR
+afslog
+#mpirun --hostfile $PBS_NODEFILE ./cylinder -p parameters -m  ../mesh_valve/volume_refined.xml -s ../mesh_valve/solid_refined.xml> log
+mpirun --hostfile $PBS_NODEFILE ./navierstokes mesh2D.xml > logx1_r0 2>logx2_r0
+mpirun --hostfile $PBS_NODEFILE ./navierstokes foutmesh.xml > logx1_r1 2>logx2_r1
+mpirun --hostfile $PBS_NODEFILE ./navierstokes foutmesh2.xml > logx1_r2 2>logx2_r2

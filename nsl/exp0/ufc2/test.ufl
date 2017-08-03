@@ -1,0 +1,18 @@
+velement3 = VectorElement("Lagrange", "triangle", 1, 3)
+velement2 = VectorElement("Lagrange", "triangle", 1)
+selement =  FiniteElement("Lagrange", "triangle", 1)
+DGelement = FiniteElement("DG", "triangle", 0)
+
+velement = velement2
+vV = TestFunction(velement)
+vU = TrialFunction(velement)
+
+w = Coefficient(velement) 
+
+
+v = vV
+
+f = (w[0].dx(0)*w[0]*v[0]+ w[0].dx(1)*w[1]*v[0] + w[1].dx(0)*w[0]*v[1] + w[1].dx(1)*w[1]*v[1]  )*dx
+J = derivative(f, w, vU)
+eqn = J - f
+a,L = [lhs(eqn), rhs(eqn)]
