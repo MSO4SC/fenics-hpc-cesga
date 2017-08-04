@@ -1,0 +1,16 @@
+# Cem Degirmenci
+# EUNISON
+# 2015/12/11
+# Compile this.ufl with FFC: ffc -l dolfin Wavetm.ufl
+
+#p_element = FiniteElement("Lagrange","triangle",1)
+cell = triangle
+order = 1
+u_element = VectorElement("Lagrange",cell,order)
+p_element = FiniteElement("Lagrange",cell,order)
+
+
+U_exact = Coefficient(u_element)
+U_computed = Coefficient(u_element)
+
+L = inner(U_exact - U_computed, U_exact -U_computed)*dx 

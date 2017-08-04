@@ -1,0 +1,8 @@
+
+experiments of Laura Saavedra and Niyazi Cem Degirmenci on Navier Stokes Equations with exact solutions
+
+exp0 -> initial CG1CG1 implementation with lots of terms and penalty BC
+
+exp1 -> remove the stabilization terms on the momentum form and penalty BC
+
+exp2 -> Dirichlet BC instead of penalty BC

@@ -1,0 +1,54 @@
+velement3 = VectorElement("Lagrange", "triangle", 1, 3)
+velement2 = VectorElement("Lagrange", "triangle", 1)
+selement =  FiniteElement("Lagrange", "triangle", 1)
+DGelement = FiniteElement("DG", "triangle", 0)
+
+
+vV = TestFunction(velement3)
+vU = TrialFunction(velement3)
+
+
+v = as_vector([vV[0], vV[1]])
+q = vV[2]
+
+u = as_vector([vU[0], vU[1]])
+p = vU[2]
+
+uin = Coefficient(velement2)
+f   = Coefficient(velement2)
+
+
+k = Coefficient(DGelement)
+nu = Coefficient(DGelement)
+d = Coefficient(DGelement)
+gamma = Coefficient(DGelement)
+
+
+u0 = Coefficient(velement2)
+#up = Coefficient(velement2)
+#up = Coefficient(velement2)
+#pp = Coefficient(selement)
+
+uppp = Coefficient(velement3)
+up = as_vector([uppp[0],uppp[1]])
+pp = uppp[2]
+
+um = 0.5*u0 + 0.5*up
+
+
+
+#                d*(inner(grad(pp) + grad(um)*um  -f, grad(q) + grad(um)*v) + inner(div(um), div(v)))*dx +\
+
+r = (inner((up - u0)/k + grad(pp) + grad(um)*um, v) + nu*inner(grad(um), grad(v)) + div(um)*q)*dx +\
+                gamma*inner(u - uin, v)*ds +\
+                d*(inner(grad(pp) , grad(q)) )*dx +\
+                -inner(f, v)*dx + 1e-6*pp*q*dx
+
+
+dfr = derivative(r, uppp, vU - uppp )
+eqn = (dfr + r)
+
+
+a,L = [lhs(eqn), rhs(eqn)]
+
+
