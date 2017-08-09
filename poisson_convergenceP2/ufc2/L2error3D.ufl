@@ -1,0 +1,17 @@
+# Copyright (C) 2005-2007 Anders Logg.
+# Licensed under the GNU LGPL Version 2.1.
+#
+# First added:  2005
+# Last changed: 2007-05-14
+#
+# The bilinear.ufl a(v, U) and linear.ufl L(v) for
+# Poisson's equation.
+#
+# Compile this.ufl with FFC: ffc -l dolfin Poisson.ufl.
+
+element = FiniteElement("Lagrange", "tetrahedron", 2)
+
+u =Coefficient(element)
+f =Coefficient(element)
+
+M = (u-f)*(u-f)*dx
