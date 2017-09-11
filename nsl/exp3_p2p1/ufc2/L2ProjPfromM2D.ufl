@@ -1,0 +1,26 @@
+# Cem Degirmenci
+# EUNISON
+# 2015/12/11
+# Compile this.ufl with FFC: ffc -l dolfin Wavetm.ufl
+
+#p_element = FiniteElement("Lagrange","triangle",1)
+cell = triangle
+order = 2
+u_element = VectorElement("Lagrange",cell,order)
+p_element = FiniteElement("Lagrange",cell,1)
+
+whole_element = u_element * p_element
+#whole_element = VectorElement("Lagrange", cell, order, 3)
+
+
+
+vh = TestFunction(p_element)
+uh = TrialFunction(p_element)
+
+U_0 = Coefficient(whole_element)
+uvector, p = split(U_0)
+
+
+eqx = uh*vh*dx - p*vh*dx
+
+forms = [lhs(eqx), rhs(eqx)]
