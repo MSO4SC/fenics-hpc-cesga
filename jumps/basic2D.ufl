@@ -1,0 +1,16 @@
+# Copyright (c) 2005 Johan Hoffman (hoffman@cims.nyu.edu)
+# Licensed under the GNU GPL Version 2
+
+cell = "triangle"
+
+constant_scalar = FiniteElement("Discontinuous Lagrange", cell, 0)
+
+
+v    =  TestFunction(constant_scalar)   # constant scalar test basis function
+u    =  Coefficient(constant_scalar)                # momentum
+
+n = FacetNormal(cell)
+
+
+L = jump(u,n[0])*avg(v)*dS
+

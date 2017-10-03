@@ -1,0 +1,14 @@
+#!/bin/bash
+#SBATCH -t 00:10:00 # execution time. Ex:01:00:00
+#SBATCH -N 1
+#SBATCH -n 24 # number of tasks. Ex:8
+#SBATCH -p cola-corta
+#SBATCH -J f1_dt0.1
+
+module purge
+#module load intel/2016 impi/5.1 fenics-hpc/0.8.4
+#module load singularity/2.2.1
+module load intel/2016 impi/5.1 fenics-hpc/0.8.4
+
+mpirun -n 4  ./cube 
+
