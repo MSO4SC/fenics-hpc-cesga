@@ -18,6 +18,10 @@ File f("unitsq.pvd");
 u.init(sq, uX, *form, 1);
 u2.init(sq, uX2, *form, 1);
 
+MeshFunction<real> meshfun; 
+meshfun.init(sq, 2); 
+
+
 
 MeshFunction<dolfin::uint> partitions;
 partitions.init(sq,sq.topology().dim());
@@ -87,8 +91,35 @@ a.assemble(uX2,*form, true);
 
 uX2.disp();
 
+
+
+ local_dim = c.numEntities(0);
+ idx = new uint[local_dim];
+ id = new uint[local_dim];
+ block = new real[local_dim];
+ 
+
+
+for(CellIterator c(sq); !c.end(); ++c)
+{
+        uint ii = 0;
+        uint jj = 0;
+
+        ufc.update(*c, sq.distdata());
+        (form->dofMaps())[1].tabulate_dofs(idx, ufc.cell, c->index());
+        uX2.get(block,1,idx);
+        meshfun.set(*c,block[jj]);
+}
+
+delete[] idx;
+delete[] id;
+delete[] block;
+
+
+
+
 File ff("uX2.pvd");
-ff << u2;
+ff << meshfun;
 //std::cout << uX.size()<< std::endl;
 
 
