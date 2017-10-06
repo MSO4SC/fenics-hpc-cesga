@@ -3,7 +3,7 @@ LIBS    = `pkg-config --libs dolfin`  -g
 CXX     = `pkg-config --variable=compiler dolfin`
 
 TARGET  = cube
-FORM_SRC	 = L2proj2D_momen.cpp L2proj2D_energ.cpp L2proj2D_densi.cpp compressible2d_mach.cpp compressible2d_sound.cpp compressible2d_velo.cpp compressible2d.cpp DirichletBC_CG1v_CG1.cpp L2proj2D.cpp
+FORM_SRC	 = compressible2d_p.cpp L2proj2D_momen.cpp L2proj2D_energ.cpp L2proj2D_densi.cpp compressible2d_mach.cpp compressible2d_sound.cpp compressible2d_velo.cpp compressible2d.cpp DirichletBC_CG1v_CG1.cpp L2proj2D.cpp
 
 FORM_OBJ = ${FORM_SRC:.cpp=.o}
 

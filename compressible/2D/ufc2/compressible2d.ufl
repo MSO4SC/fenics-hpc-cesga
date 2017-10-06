@@ -39,7 +39,7 @@ U_square_norm = U0*U0 + U1*U1
 term1 = 0.5*Rcv*U_square_norm/rho
 pr = Rcv*E - term1
 
-p = conditional(gt(pr,0), pr, 0)
+p = Coefficient(Q)
 
 tempe = p/(rho*R_gases)
 sound = sqrt(gamma*p/rho)

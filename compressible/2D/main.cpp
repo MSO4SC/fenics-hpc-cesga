@@ -21,6 +21,7 @@
 #include <dolfin/main/init.h>
 #include <dolfin/config/dolfin_config.h>
 #include "ufc2/compressible2d.h"
+#include "ufc2/compressible2d_p.h"
 #include "ufc2/compressible2d_mach.h"
 #include "ufc2/compressible2d_velo.h"
 #include "ufc2/compressible2d_sound.h"
@@ -39,6 +40,7 @@
 #include <dolfin/la/Matrix.h>
 #include <dolfin/la/Vector.h>
 #include <dolfin/la/KrylovSolver.h>
+#include <dolfin/fem/UFC.h>
 
 using namespace dolfin;
 
@@ -146,10 +148,12 @@ if(dolfin::MPI::processNumber() == 0)
   real time_v=time();
 
   Mesh mesh(argv[1]);
+  
    
   message("Input file reading (%s) took : %f ", argv[1] ,time()- time_v);
   message("Total number of vertices : %d", mesh.distdata().global_numVertices());
-
+  File fout("output_mesh.bin"); 
+  fout << mesh;
   time_v = time();
  // hmin hmax say
  real hmin = 1.;
@@ -173,7 +177,7 @@ if(dolfin::MPI::processNumber() == 0)
  message("hmin : %f hmax : %f", hmin_global, hmax_global);
 
   Assembler ass(mesh);
-  KrylovSolver gmres_s(gmres); 
+  KrylovSolver gmres_s(bicgstab); 
 
  // Line 50 in compressible-dim4.py
   Function Phi_0(mesh); 
@@ -221,12 +225,12 @@ if(dolfin::MPI::processNumber() == 0)
 // Files
 //
 
-File file_momen("momen.pvd"); 
-File file_densi("densi.pvd"); 
-File file_energ("energ.pvd");
-File file_mach ("mach.pvd");
-File file_veloc("veloc.pvd");
-File file_sound("sound.pvd");
+File file_momen("momen.bin"); 
+File file_densi("densi.bin"); 
+File file_energ("energ.bin");
+File file_mach ("mach.bin");
+File file_veloc("veloc.bin");
+File file_sound("sound.bin");
 
 
 
@@ -242,9 +246,15 @@ Function delta_t(mesh, dt);
 Function momen, energ, densi, velo, mach, sound; 
 Vector   momenX, energX, densiX, veloX, machX, soundX; 
 
+Function pr;
+Vector prX; 
 
 // Forms
 // ----------------------------------
+
+  Form *c2DpBilinear = new compressible2d_pBilinearForm();
+  Form *c2DpLinear =   new compressible2d_pLinearForm(Phi_0, R_gases, cv );
+ 
 
   Form *L2momenBilinear = new L2proj2D_momenBilinearForm();
   Form *L2momenLinear =   new L2proj2D_momenLinearForm(Phi_0);
@@ -254,18 +264,21 @@ Vector   momenX, energX, densiX, veloX, machX, soundX;
   Form *L2densiLinear =   new L2proj2D_densiLinearForm(Phi_0);
 
   Form *c2DBilinear = new compressible2dBilinearForm();
-  Form *c2DLinear =   new compressible2dLinearForm(Phi_0, h_el, R_gases, cv, delta_t);
+  Form *c2DLinear =   new compressible2dLinearForm(Phi_0, h_el, R_gases, cv, delta_t, pr);
   Form *c2DveloBilinear = new compressible2d_veloBilinearForm();
   Form *c2DveloLinear =   new compressible2d_veloLinearForm(Phi_0);
   Form *c2DmachBilinear = new compressible2d_machBilinearForm();
-  Form *c2DmachLinear =   new compressible2d_machLinearForm(Phi_0, R_gases, cv);
+  Form *c2DmachLinear =   new compressible2d_machLinearForm(Phi_0, R_gases, cv, pr);
   Form *c2DsoundBilinear = new compressible2d_soundBilinearForm();
-  Form *c2DsoundLinear =   new compressible2d_soundLinearForm(Phi_0, R_gases, cv);
+  Form *c2DsoundLinear =   new compressible2d_soundLinearForm(Phi_0, R_gases, cv, pr);
 
 
 
 // Matrices, vectors 
 // ----------------------------------
+ 
+  Matrix A_p; 
+  Vector b_p; 
 
   Matrix A_L2momen; 
   Vector b_L2momen; 
@@ -290,6 +303,8 @@ Vector   momenX, energX, densiX, veloX, machX, soundX;
   
 // inits 
 // ----------------------------------
+  pr.init(mesh, prX, *c2DpBilinear,0);
+
   momen.init(mesh, momenX, *L2momenBilinear, 0); 
   energ.init(mesh, energX, *L2energBilinear, 0); 
   densi.init(mesh, densiX, *L2densiBilinear, 0); 
@@ -310,6 +325,8 @@ Vector   momenX, energX, densiX, veloX, machX, soundX;
   
 
 
+  ass.assemble(A_p, *c2DpBilinear, true);
+  ass.assemble(b_p, *c2DpLinear, true);
 
   ass.assemble(A, *c2DBilinear, true);
   ass.assemble(b, *c2DLinear, true);
@@ -335,6 +352,55 @@ for (int stepcounter=0; stepcounter< 300; stepcounter++)
 { 
 	t+=dt; 
 	warning("solving main equation for t= %g", t); 
+
+  	ass.assemble(b_p, *c2DpLinear, false);
+ 	gmres_s.solve(A_p, prX, b_p);
+
+  	// truncate pr 
+  	{
+
+    	int d = mesh.topology().dim();
+    
+    		{
+      		UFC ufc(c2DpBilinear->form(), mesh, c2DpBilinear->dofMaps());
+      		Cell c(mesh, 0);
+      		uint local_dim = c.numEntities(0);
+      		uint *idx  = new uint[local_dim];
+      		uint *id  = new uint[local_dim];
+      		real *rho_block = new real[local_dim];  
+
+		real rho_val;
+
+      		for (CellIterator cell(mesh); !cell.end(); ++cell)
+      		{
+			ufc.update(*cell, mesh.distdata());
+			(c2DpBilinear->dofMaps())[0].tabulate_dofs(idx, ufc.cell, cell->index());
+	
+			pr.vector().get(rho_block, local_dim, idx);
+		
+			uint ii = 0;
+			uint jj = 0;    
+
+			for(VertexIterator v(*cell); !v.end(); ++v, ii++) 
+        	 	{    
+			        if (!mesh.distdata().is_ghost(v->index(), 0)) 
+          			{    
+            			 	if (rho_block[jj] < 0.0) 
+						rho_block[jj]=1e-6;  			
+            				id[jj++] = idx[ii];
+          			}    
+        		}  
+
+			pr.vector().set(rho_block, jj, id);
+
+      		}
+      
+        	pr.vector().apply();
+      		delete[] rho_block;
+      		delete[] idx;
+      		delete[] id;
+    		}
+  	}
 
 
 
@@ -365,7 +431,7 @@ for (int stepcounter=0; stepcounter< 300; stepcounter++)
  	gmres_s.solve(A_L2energ, energX, b_L2energ);
  	gmres_s.solve(A_L2densi, densiX, b_L2densi);
 
-	if (!stepcounter %10) {
+	if (!(stepcounter %10)) {
 	warning("saving at main equation for t= %g", t); 
 	file_momen << momen;
 	file_densi << densi; 

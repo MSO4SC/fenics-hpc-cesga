@@ -1079,6 +1079,48 @@ public:
 
 };
 
+class CoefficientSpace_p: public dolfin::FunctionSpace
+{
+public:
+
+  CoefficientSpace_p(const dolfin::Mesh& mesh):
+    dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_finite_element_1()))),
+                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_dofmap_1()), mesh)))
+  {
+    // Do nothing
+  }
+
+  CoefficientSpace_p(dolfin::Mesh& mesh):
+    dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_finite_element_1()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_dofmap_1()), mesh)))
+  {
+    // Do nothing
+  }
+
+  CoefficientSpace_p(dolfin::Mesh*  mesh):
+    dolfin::FunctionSpace(mesh,
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_finite_element_1()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_dofmap_1()), *mesh)))
+  {
+      // Do nothing
+  }
+
+  CoefficientSpace_p(const dolfin::Mesh* mesh):
+    dolfin::FunctionSpace(mesh,
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_finite_element_1()))),
+                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_dofmap_1()), *mesh)))
+  {
+      // Do nothing
+  }
+
+  ~CoefficientSpace_p()
+  {
+  }
+
+};
+
 class Form_0_FunctionSpace_0: public dolfin::FunctionSpace
 {
 public:
@@ -1270,13 +1312,15 @@ typedef CoefficientSpace_cv Form_1_FunctionSpace_4;
 
 typedef CoefficientSpace_delta_t Form_1_FunctionSpace_5;
 
+typedef CoefficientSpace_p Form_1_FunctionSpace_6;
+
 class Form_1: public dolfin::Form
 {
 public:
 
   // Constructor
   Form_1(const dolfin::FunctionSpace& V0):
-    dolfin::Form(1, 5), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4)
+    dolfin::Form(1, 6), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4), p(*this, 5)
   {
     _function_spaces[0] = reference_to_no_delete_pointer(V0);
 
@@ -1284,8 +1328,8 @@ public:
   }
 
   // Constructor
-  Form_1(const dolfin::FunctionSpace& V0, const dolfin::GenericFunction& Phi_0, const dolfin::GenericFunction& h_el, const dolfin::GenericFunction& R_gases, const dolfin::GenericFunction& cv, const dolfin::GenericFunction& delta_t):
-    dolfin::Form(1, 5), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4)
+  Form_1(const dolfin::FunctionSpace& V0, const dolfin::GenericFunction& Phi_0, const dolfin::GenericFunction& h_el, const dolfin::GenericFunction& R_gases, const dolfin::GenericFunction& cv, const dolfin::GenericFunction& delta_t, const dolfin::GenericFunction& p):
+    dolfin::Form(1, 6), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4), p(*this, 5)
   {
     _function_spaces[0] = reference_to_no_delete_pointer(V0);
 
@@ -1294,13 +1338,14 @@ public:
     this->R_gases = R_gases;
     this->cv = cv;
     this->delta_t = delta_t;
+    this->p = p;
 
     _ufc_form = const ufc::form* (new compressible2d_form_1());
   }
 
   // Constructor
-  Form_1(const dolfin::FunctionSpace& V0, boost::shared_ptr<const dolfin::GenericFunction> Phi_0, boost::shared_ptr<const dolfin::GenericFunction> h_el, boost::shared_ptr<const dolfin::GenericFunction> R_gases, boost::shared_ptr<const dolfin::GenericFunction> cv, boost::shared_ptr<const dolfin::GenericFunction> delta_t):
-    dolfin::Form(1, 5), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4)
+  Form_1(const dolfin::FunctionSpace& V0, boost::shared_ptr<const dolfin::GenericFunction> Phi_0, boost::shared_ptr<const dolfin::GenericFunction> h_el, boost::shared_ptr<const dolfin::GenericFunction> R_gases, boost::shared_ptr<const dolfin::GenericFunction> cv, boost::shared_ptr<const dolfin::GenericFunction> delta_t, boost::shared_ptr<const dolfin::GenericFunction> p):
+    dolfin::Form(1, 6), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4), p(*this, 5)
   {
     _function_spaces[0] = reference_to_no_delete_pointer(V0);
 
@@ -1309,13 +1354,14 @@ public:
     this->R_gases = *R_gases;
     this->cv = *cv;
     this->delta_t = *delta_t;
+    this->p = *p;
 
     _ufc_form = const ufc::form* (new compressible2d_form_1());
   }
 
   // Constructor
   Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0):
-    dolfin::Form(1, 5), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4)
+    dolfin::Form(1, 6), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4), p(*this, 5)
   {
     _function_spaces[0] = V0;
 
@@ -1323,8 +1369,8 @@ public:
   }
 
   // Constructor
-  Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0, const dolfin::GenericFunction& Phi_0, const dolfin::GenericFunction& h_el, const dolfin::GenericFunction& R_gases, const dolfin::GenericFunction& cv, const dolfin::GenericFunction& delta_t):
-    dolfin::Form(1, 5), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4)
+  Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0, const dolfin::GenericFunction& Phi_0, const dolfin::GenericFunction& h_el, const dolfin::GenericFunction& R_gases, const dolfin::GenericFunction& cv, const dolfin::GenericFunction& delta_t, const dolfin::GenericFunction& p):
+    dolfin::Form(1, 6), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4), p(*this, 5)
   {
     _function_spaces[0] = V0;
 
@@ -1333,13 +1379,14 @@ public:
     this->R_gases = R_gases;
     this->cv = cv;
     this->delta_t = delta_t;
+    this->p = p;
 
     _ufc_form = const ufc::form* (new compressible2d_form_1());
   }
 
   // Constructor
-  Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0, boost::shared_ptr<const dolfin::GenericFunction> Phi_0, boost::shared_ptr<const dolfin::GenericFunction> h_el, boost::shared_ptr<const dolfin::GenericFunction> R_gases, boost::shared_ptr<const dolfin::GenericFunction> cv, boost::shared_ptr<const dolfin::GenericFunction> delta_t):
-    dolfin::Form(1, 5), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4)
+  Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0, boost::shared_ptr<const dolfin::GenericFunction> Phi_0, boost::shared_ptr<const dolfin::GenericFunction> h_el, boost::shared_ptr<const dolfin::GenericFunction> R_gases, boost::shared_ptr<const dolfin::GenericFunction> cv, boost::shared_ptr<const dolfin::GenericFunction> delta_t, boost::shared_ptr<const dolfin::GenericFunction> p):
+    dolfin::Form(1, 6), Phi_0(*this, 0), h_el(*this, 1), R_gases(*this, 2), cv(*this, 3), delta_t(*this, 4), p(*this, 5)
   {
     _function_spaces[0] = V0;
 
@@ -1348,6 +1395,7 @@ public:
     this->R_gases = *R_gases;
     this->cv = *cv;
     this->delta_t = *delta_t;
+    this->p = *p;
 
     _ufc_form = const ufc::form* (new compressible2d_form_1());
   }
@@ -1369,6 +1417,8 @@ public:
       return 3;
     else if (name == "delta_t")
       return 4;
+    else if (name == "p")
+      return 5;
 
     dolfin::dolfin_error("generated code for class Form",
                          "access coeficient data",
@@ -1391,6 +1441,8 @@ public:
       return "cv";
     case 4:
       return "delta_t";
+    case 5:
+      return "p";
     }
 
     dolfin::dolfin_error("generated code for class Form",
@@ -1406,6 +1458,7 @@ public:
   typedef Form_1_FunctionSpace_3 CoefficientSpace_R_gases;
   typedef Form_1_FunctionSpace_4 CoefficientSpace_cv;
   typedef Form_1_FunctionSpace_5 CoefficientSpace_delta_t;
+  typedef Form_1_FunctionSpace_6 CoefficientSpace_p;
 
   // Coefficients
   dolfin::CoefficientAssigner Phi_0;
@@ -1413,6 +1466,7 @@ public:
   dolfin::CoefficientAssigner R_gases;
   dolfin::CoefficientAssigner cv;
   dolfin::CoefficientAssigner delta_t;
+  dolfin::CoefficientAssigner p;
 };
 
 // Class typedefs
@@ -1463,13 +1517,14 @@ class compressible2dLinearForm : public dolfin::Form
 {
 public:
 
-  compressible2dLinearForm(dolfin::Function& w0, dolfin::Function& w1, dolfin::Function& w2, dolfin::Function& w3, dolfin::Function& w4) : dolfin::Form()
+  compressible2dLinearForm(dolfin::Function& w0, dolfin::Function& w1, dolfin::Function& w2, dolfin::Function& w3, dolfin::Function& w4, dolfin::Function& w5) : dolfin::Form()
   {
     __coefficients.push_back(&w0);
     __coefficients.push_back(&w1);
     __coefficients.push_back(&w2);
     __coefficients.push_back(&w3);
     __coefficients.push_back(&w4);
+    __coefficients.push_back(&w5);
   }
 
   /// Return UFC form

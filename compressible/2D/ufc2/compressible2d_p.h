@@ -26,8 +26,8 @@
 //   swig_binary:                    'swig'
 //   swig_path:                      ''
 
-#ifndef __COMPRESSIBLE2D_SOUND_H
-#define __COMPRESSIBLE2D_SOUND_H
+#ifndef __COMPRESSIBLE2D_P_H
+#define __COMPRESSIBLE2D_P_H
 
 #include <cmath>
 #include <stdexcept>
@@ -36,15 +36,15 @@
 
 /// This class defines the interface for a finite element.
 
-class compressible2d_sound_finite_element_0: public ufc::finite_element
+class compressible2d_p_finite_element_0: public ufc::finite_element
 {
 public:
 
   /// Constructor
-  compressible2d_sound_finite_element_0();
+  compressible2d_p_finite_element_0();
 
   /// Destructor
-  virtual ~compressible2d_sound_finite_element_0();
+  virtual ~compressible2d_p_finite_element_0();
 
   /// Return a string identifying the finite element
   virtual const char* signature() const;
@@ -134,15 +134,15 @@ public:
 
 /// This class defines the interface for a finite element.
 
-class compressible2d_sound_finite_element_1: public ufc::finite_element
+class compressible2d_p_finite_element_1: public ufc::finite_element
 {
 public:
 
   /// Constructor
-  compressible2d_sound_finite_element_1();
+  compressible2d_p_finite_element_1();
 
   /// Destructor
-  virtual ~compressible2d_sound_finite_element_1();
+  virtual ~compressible2d_p_finite_element_1();
 
   /// Return a string identifying the finite element
   virtual const char* signature() const;
@@ -232,15 +232,15 @@ public:
 
 /// This class defines the interface for a finite element.
 
-class compressible2d_sound_finite_element_2: public ufc::finite_element
+class compressible2d_p_finite_element_2: public ufc::finite_element
 {
 public:
 
   /// Constructor
-  compressible2d_sound_finite_element_2();
+  compressible2d_p_finite_element_2();
 
   /// Destructor
-  virtual ~compressible2d_sound_finite_element_2();
+  virtual ~compressible2d_p_finite_element_2();
 
   /// Return a string identifying the finite element
   virtual const char* signature() const;
@@ -332,9 +332,9 @@ public:
 /// degrees of freedom (dofs).
 
 #ifndef UFC_BACKWARD_COMPATIBILITY
-class compressible2d_sound_dofmap_0: public ufc::dofmap
+class compressible2d_p_dofmap_0: public ufc::dofmap
 #else
-class compressible2d_sound_dofmap_0: public ufc::dof_map
+class compressible2d_p_dofmap_0: public ufc::dof_map
 #endif
 {
 private:
@@ -343,10 +343,10 @@ private:
 public:
 
   /// Constructor
-  compressible2d_sound_dofmap_0();
+  compressible2d_p_dofmap_0();
 
   /// Destructor
-  virtual ~compressible2d_sound_dofmap_0();
+  virtual ~compressible2d_p_dofmap_0();
 
   /// Return a string identifying the dofmap
   virtual const char* signature() const;
@@ -434,9 +434,9 @@ public:
 /// degrees of freedom (dofs).
 
 #ifndef UFC_BACKWARD_COMPATIBILITY
-class compressible2d_sound_dofmap_1: public ufc::dofmap
+class compressible2d_p_dofmap_1: public ufc::dofmap
 #else
-class compressible2d_sound_dofmap_1: public ufc::dof_map
+class compressible2d_p_dofmap_1: public ufc::dof_map
 #endif
 {
 private:
@@ -445,10 +445,10 @@ private:
 public:
 
   /// Constructor
-  compressible2d_sound_dofmap_1();
+  compressible2d_p_dofmap_1();
 
   /// Destructor
-  virtual ~compressible2d_sound_dofmap_1();
+  virtual ~compressible2d_p_dofmap_1();
 
   /// Return a string identifying the dofmap
   virtual const char* signature() const;
@@ -536,9 +536,9 @@ public:
 /// degrees of freedom (dofs).
 
 #ifndef UFC_BACKWARD_COMPATIBILITY
-class compressible2d_sound_dofmap_2: public ufc::dofmap
+class compressible2d_p_dofmap_2: public ufc::dofmap
 #else
-class compressible2d_sound_dofmap_2: public ufc::dof_map
+class compressible2d_p_dofmap_2: public ufc::dof_map
 #endif
 {
 private:
@@ -547,10 +547,10 @@ private:
 public:
 
   /// Constructor
-  compressible2d_sound_dofmap_2();
+  compressible2d_p_dofmap_2();
 
   /// Destructor
-  virtual ~compressible2d_sound_dofmap_2();
+  virtual ~compressible2d_p_dofmap_2();
 
   /// Return a string identifying the dofmap
   virtual const char* signature() const;
@@ -638,15 +638,15 @@ public:
 /// tensor corresponding to the local contribution to a form from
 /// the integral over a cell.
 
-class compressible2d_sound_cell_integral_0_0: public ufc::cell_integral
+class compressible2d_p_cell_integral_0_0: public ufc::cell_integral
 {
 public:
 
   /// Constructor
-  compressible2d_sound_cell_integral_0_0();
+  compressible2d_p_cell_integral_0_0();
 
   /// Destructor
-  virtual ~compressible2d_sound_cell_integral_0_0();
+  virtual ~compressible2d_p_cell_integral_0_0();
 
   /// Tabulate the tensor for the contribution from a local cell
   virtual void tabulate_tensor(double* A,
@@ -669,15 +669,15 @@ public:
 /// tensor corresponding to the local contribution to a form from
 /// the integral over a cell.
 
-class compressible2d_sound_cell_integral_1_0: public ufc::cell_integral
+class compressible2d_p_cell_integral_1_0: public ufc::cell_integral
 {
 public:
 
   /// Constructor
-  compressible2d_sound_cell_integral_1_0();
+  compressible2d_p_cell_integral_1_0();
 
   /// Destructor
-  virtual ~compressible2d_sound_cell_integral_1_0();
+  virtual ~compressible2d_p_cell_integral_1_0();
 
   /// Tabulate the tensor for the contribution from a local cell
   virtual void tabulate_tensor(double* A,
@@ -711,15 +711,15 @@ public:
 /// sequence of basis functions of Vj and w1, w2, ..., wn are given
 /// fixed functions (coefficients).
 
-class compressible2d_sound_form_0: public ufc::form
+class compressible2d_p_form_0: public ufc::form
 {
 public:
 
   /// Constructor
-  compressible2d_sound_form_0();
+  compressible2d_p_form_0();
 
   /// Destructor
-  virtual ~compressible2d_sound_form_0();
+  virtual ~compressible2d_p_form_0();
 
   /// Return a string identifying the form
   virtual const char* signature() const;
@@ -787,15 +787,15 @@ public:
 /// sequence of basis functions of Vj and w1, w2, ..., wn are given
 /// fixed functions (coefficients).
 
-class compressible2d_sound_form_1: public ufc::form
+class compressible2d_p_form_1: public ufc::form
 {
 public:
 
   /// Constructor
-  compressible2d_sound_form_1();
+  compressible2d_p_form_1();
 
   /// Destructor
-  virtual ~compressible2d_sound_form_1();
+  virtual ~compressible2d_p_form_1();
 
   /// Return a string identifying the form
   virtual const char* signature() const;
@@ -866,7 +866,7 @@ public:
 #include <dolfin/adaptivity/ErrorControl.h>
 #include <dolfin/adaptivity/GoalFunctional.h>
 
-namespace compressible2d_sound
+namespace compressible2d_p
 {
 
 class CoefficientSpace_Phi_0: public dolfin::FunctionSpace
@@ -875,32 +875,32 @@ public:
 
   CoefficientSpace_Phi_0(const dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_2()))),
-                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_sound_dofmap_2()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_2()))),
+                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_p_dofmap_2()), mesh)))
   {
     // Do nothing
   }
 
   CoefficientSpace_Phi_0(dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_2()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_sound_dofmap_2()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_2()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_p_dofmap_2()), mesh)))
   {
     // Do nothing
   }
 
   CoefficientSpace_Phi_0(dolfin::Mesh*  mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_2()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_2()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_2()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_2()), *mesh)))
   {
       // Do nothing
   }
 
   CoefficientSpace_Phi_0(const dolfin::Mesh* mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_sound_finite_element_2()))),
-                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_2()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_p_finite_element_2()))),
+                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_2()), *mesh)))
   {
       // Do nothing
   }
@@ -917,32 +917,32 @@ public:
 
   CoefficientSpace_R_gases(const dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_0()))),
-                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_sound_dofmap_0()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_0()))),
+                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_p_dofmap_0()), mesh)))
   {
     // Do nothing
   }
 
   CoefficientSpace_R_gases(dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_0()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_sound_dofmap_0()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_0()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_p_dofmap_0()), mesh)))
   {
     // Do nothing
   }
 
   CoefficientSpace_R_gases(dolfin::Mesh*  mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_0()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_0()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_0()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_0()), *mesh)))
   {
       // Do nothing
   }
 
   CoefficientSpace_R_gases(const dolfin::Mesh* mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_sound_finite_element_0()))),
-                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_0()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_p_finite_element_0()))),
+                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_0()), *mesh)))
   {
       // Do nothing
   }
@@ -959,79 +959,37 @@ public:
 
   CoefficientSpace_cv(const dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_0()))),
-                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_sound_dofmap_0()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_0()))),
+                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_p_dofmap_0()), mesh)))
   {
     // Do nothing
   }
 
   CoefficientSpace_cv(dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_0()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_sound_dofmap_0()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_0()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_p_dofmap_0()), mesh)))
   {
     // Do nothing
   }
 
   CoefficientSpace_cv(dolfin::Mesh*  mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_0()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_0()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_0()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_0()), *mesh)))
   {
       // Do nothing
   }
 
   CoefficientSpace_cv(const dolfin::Mesh* mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_sound_finite_element_0()))),
-                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_0()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_p_finite_element_0()))),
+                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_0()), *mesh)))
   {
       // Do nothing
   }
 
   ~CoefficientSpace_cv()
-  {
-  }
-
-};
-
-class CoefficientSpace_p: public dolfin::FunctionSpace
-{
-public:
-
-  CoefficientSpace_p(const dolfin::Mesh& mesh):
-    dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_sound_dofmap_1()), mesh)))
-  {
-    // Do nothing
-  }
-
-  CoefficientSpace_p(dolfin::Mesh& mesh):
-    dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_sound_dofmap_1()), mesh)))
-  {
-    // Do nothing
-  }
-
-  CoefficientSpace_p(dolfin::Mesh*  mesh):
-    dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_1()), *mesh)))
-  {
-      // Do nothing
-  }
-
-  CoefficientSpace_p(const dolfin::Mesh* mesh):
-    dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_1()), *mesh)))
-  {
-      // Do nothing
-  }
-
-  ~CoefficientSpace_p()
   {
   }
 
@@ -1043,32 +1001,32 @@ public:
 
   Form_0_FunctionSpace_0(const dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_sound_dofmap_1()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_p_dofmap_1()), mesh)))
   {
     // Do nothing
   }
 
   Form_0_FunctionSpace_0(dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_sound_dofmap_1()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_p_dofmap_1()), mesh)))
   {
     // Do nothing
   }
 
   Form_0_FunctionSpace_0(dolfin::Mesh*  mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_1()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_1()), *mesh)))
   {
       // Do nothing
   }
 
   Form_0_FunctionSpace_0(const dolfin::Mesh* mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_1()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_1()), *mesh)))
   {
       // Do nothing
   }
@@ -1085,32 +1043,32 @@ public:
 
   Form_0_FunctionSpace_1(const dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_sound_dofmap_1()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_p_dofmap_1()), mesh)))
   {
     // Do nothing
   }
 
   Form_0_FunctionSpace_1(dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_sound_dofmap_1()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_p_dofmap_1()), mesh)))
   {
     // Do nothing
   }
 
   Form_0_FunctionSpace_1(dolfin::Mesh*  mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_1()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_1()), *mesh)))
   {
       // Do nothing
   }
 
   Form_0_FunctionSpace_1(const dolfin::Mesh* mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_1()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_1()), *mesh)))
   {
       // Do nothing
   }
@@ -1132,7 +1090,7 @@ public:
     _function_spaces[0] = reference_to_no_delete_pointer(V0);
     _function_spaces[1] = reference_to_no_delete_pointer(V1);
 
-    _ufc_form = const ufc::form* (new compressible2d_sound_form_0());
+    _ufc_form = const ufc::form* (new compressible2d_p_form_0());
   }
 
   // Constructor
@@ -1142,7 +1100,7 @@ public:
     _function_spaces[0] = V0;
     _function_spaces[1] = V1;
 
-    _ufc_form = const ufc::form* (new compressible2d_sound_form_0());
+    _ufc_form = const ufc::form* (new compressible2d_p_form_0());
   }
 
   // Destructor
@@ -1182,32 +1140,32 @@ public:
 
   Form_1_FunctionSpace_0(const dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_sound_dofmap_1()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap *(new dolfin::DofMap(ufc::dofmap* (new compressible2d_p_dofmap_1()), mesh)))
   {
     // Do nothing
   }
 
   Form_1_FunctionSpace_0(dolfin::Mesh& mesh):
     dolfin::FunctionSpace(dolfin::reference_to_no_delete_pointer(mesh),
-                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_sound_dofmap_1()), mesh)))
+                          const dolfin::FiniteElement* (new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap *(new compressible2d_p_dofmap_1()), mesh)))
   {
     // Do nothing
   }
 
   Form_1_FunctionSpace_0(dolfin::Mesh*  mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_1()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element* (new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap* (new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_1()), *mesh)))
   {
       // Do nothing
   }
 
   Form_1_FunctionSpace_0(const dolfin::Mesh* mesh):
     dolfin::FunctionSpace(mesh,
-                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_sound_finite_element_1()))),
-                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_sound_dofmap_1()), *mesh)))
+                          const dolfin::FiniteElement *(new dolfin::FiniteElement(ufc::finite_element*(new compressible2d_p_finite_element_1()))),
+                          const dolfin::DofMap*(new dolfin::DofMap(ufc::dofmap*(new compressible2d_p_dofmap_1()), *mesh)))
   {
       // Do nothing
   }
@@ -1224,84 +1182,78 @@ typedef CoefficientSpace_R_gases Form_1_FunctionSpace_2;
 
 typedef CoefficientSpace_cv Form_1_FunctionSpace_3;
 
-typedef CoefficientSpace_p Form_1_FunctionSpace_4;
-
 class Form_1: public dolfin::Form
 {
 public:
 
   // Constructor
   Form_1(const dolfin::FunctionSpace& V0):
-    dolfin::Form(1, 4), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2), p(*this, 3)
+    dolfin::Form(1, 3), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2)
   {
     _function_spaces[0] = reference_to_no_delete_pointer(V0);
 
-    _ufc_form = const ufc::form* (new compressible2d_sound_form_1());
+    _ufc_form = const ufc::form* (new compressible2d_p_form_1());
   }
 
   // Constructor
-  Form_1(const dolfin::FunctionSpace& V0, const dolfin::GenericFunction& Phi_0, const dolfin::GenericFunction& R_gases, const dolfin::GenericFunction& cv, const dolfin::GenericFunction& p):
-    dolfin::Form(1, 4), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2), p(*this, 3)
+  Form_1(const dolfin::FunctionSpace& V0, const dolfin::GenericFunction& Phi_0, const dolfin::GenericFunction& R_gases, const dolfin::GenericFunction& cv):
+    dolfin::Form(1, 3), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2)
   {
     _function_spaces[0] = reference_to_no_delete_pointer(V0);
 
     this->Phi_0 = Phi_0;
     this->R_gases = R_gases;
     this->cv = cv;
-    this->p = p;
 
-    _ufc_form = const ufc::form* (new compressible2d_sound_form_1());
+    _ufc_form = const ufc::form* (new compressible2d_p_form_1());
   }
 
   // Constructor
-  Form_1(const dolfin::FunctionSpace& V0, boost::shared_ptr<const dolfin::GenericFunction> Phi_0, boost::shared_ptr<const dolfin::GenericFunction> R_gases, boost::shared_ptr<const dolfin::GenericFunction> cv, boost::shared_ptr<const dolfin::GenericFunction> p):
-    dolfin::Form(1, 4), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2), p(*this, 3)
+  Form_1(const dolfin::FunctionSpace& V0, boost::shared_ptr<const dolfin::GenericFunction> Phi_0, boost::shared_ptr<const dolfin::GenericFunction> R_gases, boost::shared_ptr<const dolfin::GenericFunction> cv):
+    dolfin::Form(1, 3), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2)
   {
     _function_spaces[0] = reference_to_no_delete_pointer(V0);
 
     this->Phi_0 = *Phi_0;
     this->R_gases = *R_gases;
     this->cv = *cv;
-    this->p = *p;
 
-    _ufc_form = const ufc::form* (new compressible2d_sound_form_1());
+    _ufc_form = const ufc::form* (new compressible2d_p_form_1());
   }
 
   // Constructor
   Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0):
-    dolfin::Form(1, 4), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2), p(*this, 3)
+    dolfin::Form(1, 3), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2)
   {
     _function_spaces[0] = V0;
 
-    _ufc_form = const ufc::form* (new compressible2d_sound_form_1());
+    _ufc_form = const ufc::form* (new compressible2d_p_form_1());
   }
 
   // Constructor
-  Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0, const dolfin::GenericFunction& Phi_0, const dolfin::GenericFunction& R_gases, const dolfin::GenericFunction& cv, const dolfin::GenericFunction& p):
-    dolfin::Form(1, 4), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2), p(*this, 3)
+  Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0, const dolfin::GenericFunction& Phi_0, const dolfin::GenericFunction& R_gases, const dolfin::GenericFunction& cv):
+    dolfin::Form(1, 3), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2)
   {
     _function_spaces[0] = V0;
 
     this->Phi_0 = Phi_0;
     this->R_gases = R_gases;
     this->cv = cv;
-    this->p = p;
 
-    _ufc_form = const ufc::form* (new compressible2d_sound_form_1());
+    _ufc_form = const ufc::form* (new compressible2d_p_form_1());
   }
 
   // Constructor
-  Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0, boost::shared_ptr<const dolfin::GenericFunction> Phi_0, boost::shared_ptr<const dolfin::GenericFunction> R_gases, boost::shared_ptr<const dolfin::GenericFunction> cv, boost::shared_ptr<const dolfin::GenericFunction> p):
-    dolfin::Form(1, 4), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2), p(*this, 3)
+  Form_1(boost::shared_ptr<const dolfin::FunctionSpace> V0, boost::shared_ptr<const dolfin::GenericFunction> Phi_0, boost::shared_ptr<const dolfin::GenericFunction> R_gases, boost::shared_ptr<const dolfin::GenericFunction> cv):
+    dolfin::Form(1, 3), Phi_0(*this, 0), R_gases(*this, 1), cv(*this, 2)
   {
     _function_spaces[0] = V0;
 
     this->Phi_0 = *Phi_0;
     this->R_gases = *R_gases;
     this->cv = *cv;
-    this->p = *p;
 
-    _ufc_form = const ufc::form* (new compressible2d_sound_form_1());
+    _ufc_form = const ufc::form* (new compressible2d_p_form_1());
   }
 
   // Destructor
@@ -1317,8 +1269,6 @@ public:
       return 1;
     else if (name == "cv")
       return 2;
-    else if (name == "p")
-      return 3;
 
     dolfin::dolfin_error("generated code for class Form",
                          "access coeficient data",
@@ -1337,8 +1287,6 @@ public:
       return "R_gases";
     case 2:
       return "cv";
-    case 3:
-      return "p";
     }
 
     dolfin::dolfin_error("generated code for class Form",
@@ -1352,13 +1300,11 @@ public:
   typedef Form_1_FunctionSpace_1 CoefficientSpace_Phi_0;
   typedef Form_1_FunctionSpace_2 CoefficientSpace_R_gases;
   typedef Form_1_FunctionSpace_3 CoefficientSpace_cv;
-  typedef Form_1_FunctionSpace_4 CoefficientSpace_p;
 
   // Coefficients
   dolfin::CoefficientAssigner Phi_0;
   dolfin::CoefficientAssigner R_gases;
   dolfin::CoefficientAssigner cv;
-  dolfin::CoefficientAssigner p;
 };
 
 // Class typedefs
@@ -1374,11 +1320,11 @@ typedef Form_0::TestSpace FunctionSpace;
 // DOLFIN wrappers
 #include <dolfin/fem/Form.h>
 
-class compressible2d_soundBilinearForm : public dolfin::Form
+class compressible2d_pBilinearForm : public dolfin::Form
 {
 public:
 
-  compressible2d_soundBilinearForm() : dolfin::Form()
+  compressible2d_pBilinearForm() : dolfin::Form()
   {
 
   }
@@ -1398,23 +1344,22 @@ public:
 private:
 
   // UFC form
-  compressible2d_sound_form_0 __form;
+  compressible2d_p_form_0 __form;
 
   /// Array of coefficients
   dolfin::Array<dolfin::Function*> __coefficients;
 
 };
 
-class compressible2d_soundLinearForm : public dolfin::Form
+class compressible2d_pLinearForm : public dolfin::Form
 {
 public:
 
-  compressible2d_soundLinearForm(dolfin::Function& w0, dolfin::Function& w1, dolfin::Function& w2, dolfin::Function& w3) : dolfin::Form()
+  compressible2d_pLinearForm(dolfin::Function& w0, dolfin::Function& w1, dolfin::Function& w2) : dolfin::Form()
   {
     __coefficients.push_back(&w0);
     __coefficients.push_back(&w1);
     __coefficients.push_back(&w2);
-    __coefficients.push_back(&w3);
   }
 
   /// Return UFC form
@@ -1432,7 +1377,7 @@ public:
 private:
 
   // UFC form
-  compressible2d_sound_form_1 __form;
+  compressible2d_p_form_1 __form;
 
   /// Array of coefficients
   dolfin::Array<dolfin::Function*> __coefficients;
