@@ -1,0 +1,65 @@
+# Niyazi Cem Degirmenci 
+# 2017-september-26
+
+cell = "triangle"
+
+
+DG0 = FiniteElement("DG", cell, 0)
+Q =  FiniteElement("Lagrange", cell, 1)
+V =  VectorElement("Lagrange", cell, 1)
+W =  VectorElement("Lagrange", cell, 1, 4)
+
+
+Psi = TestFunction(W)
+Phi = TrialFunction(W)
+
+Phi_0 = Coefficient(W) 
+
+h_el = Coefficient(DG0)
+R_gases = Coefficient(DG0)
+cv = Coefficient(DG0)  
+
+delta_t = Coefficient(DG0)
+
+Rcv = R_gases / cv
+gamma = Rcv + 1. 
+
+
+U0 = Phi_0[0]
+U1 = Phi_0[1]
+rho = Phi_0[2]
+E = Phi_0[3]
+
+u0 = U0/rho
+u1 = U1/rho
+
+u_norm = sqrt(u0*u0 + u1*u1)
+U_square_norm = U0*U0 + U1*U1
+
+term1 = 0.5*Rcv*U_square_norm/rho
+pr = Rcv*E - term1
+
+p = conditional(gt(pr,0), pr, 0)
+
+tempe = p/(rho*R_gases)
+sound = sqrt(gamma*p/rho)
+mach = u_norm / sound
+
+# Convection Jacobian matrix, x-direction: (4x4) matrix
+A0 = as_matrix([[(2.-Rcv)*u0, -Rcv*u1, -u0**2+term1/rho, Rcv], [u1, u0, -u0*u1, 0.], \
+[1., 0., 0., 0.], [(E+p-Rcv*U0*U0/rho)/rho, -Rcv*u0*u1, -u0*(E+p-term1)/rho, gamma*u0]]) 
+    
+# Convection Jacobian matrix, y-direction: (4x4) matrix
+A1 = as_matrix([[u1, u0, -u1*u0, 0.], [-Rcv*u0, (2.-Rcv)*u1, -u1**2+term1/rho, Rcv], \
+[0., 1., 0., 0.], [-Rcv*u1*u0, (E+p-Rcv*U1*U1/rho)/rho, -u1*(E+p-term1)/rho, gamma*u1]]) 
+
+#L = A0 * Dx(Phi, 0) + A1 * Dx(Phi, 1)
+Ll = A0 * Dx(Phi_0, 0) + A1 * Dx(Phi_0, 1)
+resi = -Ll
+
+tau = 0.5 * h_el / (u_norm + sound) # Stabilization parameter
+#Stab = (inner(tau*A0*resi, Dx(Psi, 0))+inner(tau*A1*resi, Dx(Psi, 1)))
+
+
+a = inner(Phi, Psi)*dx 
+L = (u0*Psi[0] + u1*Psi[1])*dx

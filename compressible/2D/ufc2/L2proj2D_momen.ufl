@@ -1,0 +1,13 @@
+# Niyazi Cem Degirmenci
+
+cell = triangle
+order = 1
+W = VectorElement("Lagrange",cell,order, 4)
+V = VectorElement("Lagrange",cell,order)
+
+v = TestFunction(V)
+u = TrialFunction(V)
+f = Coefficient(W)
+
+a = inner(u,v)*dx
+L = (f[0]*v[0] + f[1]*v[1])*dx
