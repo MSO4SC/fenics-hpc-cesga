@@ -1,0 +1,22 @@
+# This file should be included by Makefiles of executables that want to
+# use the unicorn library
+
+CFLAGS  = `pkg-config --cflags dolfin` -I$(UNICORNLIBDIR)
+LIBS    = `pkg-config --libs dolfin`
+CXX     = `pkg-config --variable=compiler dolfin` -g
+
+FFCFLAGS = -O -r quadrature -fsplit -l dolfin
+
+LIBDIR = $(UNICORNLIBDIR)
+
+%.cpp: %.ufl
+	cd $(LIBDIR)/ufc2 && ffc $(FFCFLAGS) $(notdir $<) > /dev/null
+
+UFC2OBJECTS = $(LIBDIR)/ufc2/Poisson3D.o $(LIBDIR)/ufc2/Poisson2D.o 
+
+
+cleanLib:
+	-rm -f core *.core  $(UFC2OBJECTS) $(UFC2OBJECTS:.o=.cpp) $(UFC2OBJECTS:.o=.h)
+
+.cpp.o:
+	$(CXX) $(CFLAGS) -c $< -o $@

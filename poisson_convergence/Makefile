@@ -1,19 +1,22 @@
-CFLAGS  = `pkg-config --cflags dolfin`
-LIBS    = `pkg-config --libs dolfin`
-CXX     = `pkg-config --variable=compiler dolfin`
-
-DEST    = poisson
-OBJECTS = main.o
+DEST    = demo
 
 all: $(DEST)
 
-install:
+# this is the path to unicorn source
+# it will be the path to install directory when install will be available
+# it is left commented as documentation because users should define
+# it elsewhere
+ export UNICORNLIBDIR=$(PWD)
 
-clean:
-	-rm -f *.o core *.core $(OBJECTS) $(DEST)
+include $(UNICORNLIBDIR)/Makefile.lib
 
-$(DEST): $(OBJECTS)
-	$(CXX) -o $@ $(OBJECTS) $(CFLAGS) $(LIBS)
+MYOBJECTS = main.o
 
-.cpp.o:
-	$(CXX) $(CFLAGS) -c $<
+OBJECTS = $(UFC2OBJECTS) $(LIBOBJECTS)
+$(MYOBJECTS) : $(OBJECTS)
+
+clean: cleanLib
+	-rm -f $(MYOBJECTS) $(DEST)
+
+$(DEST): $(MYOBJECTS)
+	$(CXX) -o $@ $(OBJECTS) $(MYOBJECTS) $(CFLAGS) $(LIBS)
